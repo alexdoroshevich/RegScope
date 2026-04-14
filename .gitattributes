@@ -1,0 +1,33 @@
+# Normalize line endings — LF in repo, Git handles platform conversion on checkout.
+* text=auto eol=lf
+
+# Explicit text files
+*.py       text eol=lf
+*.md       text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.json     text eol=lf
+*.toml     text eol=lf
+*.sh       text eol=lf
+*.ts       text eol=lf
+*.tsx      text eol=lf
+
+# Windows-native scripts
+*.ps1      text eol=crlf
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+
+# Binary (never diff, never LF-normalize)
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.ico      binary
+*.parquet  binary
+*.duckdb   binary
+*.arrow    binary
+*.pdf      binary
+
+# Lockfiles — generated, collapse in PR diffs
+package-lock.json   linguist-generated=true
+uv.lock             linguist-generated=true

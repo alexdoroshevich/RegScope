@@ -1,0 +1,122 @@
+{
+  "model": "opus",
+  "effortLevel": "high",
+  "autoMemoryEnabled": true,
+  "permissions": {
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Bash(uv:*)",
+      "Bash(uvx:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)",
+      "Bash(ruff:*)",
+      "Bash(mypy:*)",
+      "Bash(pre-commit:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(make:*)",
+      "Bash(docker:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git show:*)",
+      "Bash(git fetch:*)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git restore:*)",
+      "Bash(git switch:*)",
+      "Bash(git stash:*)",
+      "Bash(gh pr:*)",
+      "Bash(gh issue:*)",
+      "Bash(gh run:*)",
+      "Bash(gh workflow:*)",
+      "Bash(gh api:*)",
+      "Bash(gh repo view:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(git checkout -- .:*)",
+      "Bash(git commit --no-verify:*)",
+      "Bash(DROP DATABASE:*)",
+      "Bash(DROP TABLE:*)",
+      "Bash(TRUNCATE:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat \"$CLAUDE_PROJECT_DIR/.claude/rules/architecture.md\" \"$CLAUDE_PROJECT_DIR/.claude/rules/python.md\" \"$CLAUDE_PROJECT_DIR/.claude/rules/data-pipeline.md\" \"$CLAUDE_PROJECT_DIR/.claude/rules/git-workflow.md\" 2>/dev/null | head -300 || true",
+            "timeout": 5,
+            "statusMessage": "Loading RegScope project rules..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && git status --short 2>/dev/null | { read -r line; if [ -n \"$line\" ]; then echo '{\"systemMessage\": \"Uncommitted changes exist. Ask the user before committing — commits and pushes require explicit approval.\"}'; fi; } || true",
+            "timeout": 5,
+            "statusMessage": "Checking for uncommitted changes..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); cmd=$(echo \"$input\" | python -c \"import sys,json; d=json.loads(sys.stdin.read()); print(d.get('tool_input',{}).get('command',''))\" 2>/dev/null || echo ''); if echo \"$cmd\" | grep -qE '^\\s*git\\s+push.*\\b(origin\\s+)?(main|master)\\b'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Direct push to main/master is blocked. Create a feature/ branch and open a PR.\"}}'; fi || true",
+            "timeout": 5,
+            "statusMessage": "Branch guard: checking push target..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); file=$(echo \"$input\" | python -c \"import sys,json; d=json.loads(sys.stdin.read()); print(d.get('tool_input',{}).get('file_path',''))\" 2>/dev/null || echo ''); case \"$file\" in *ruff.toml|*.pre-commit-config.yaml|*.github/workflows/*|*tsconfig.json) echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Quality-gate config file. State intent to the user and get explicit approval before modifying.\"}}' ;; *pyproject.toml) changed=$(echo \"$input\" | python -c \"import sys,json; d=json.loads(sys.stdin.read()); ti=d.get('tool_input',{}); print(ti.get('old_string','') + ti.get('new_string','') + ti.get('content',''))\" 2>/dev/null || echo ''); if echo \"$changed\" | grep -qE '\\[tool\\.(ruff|mypy|pytest|coverage)'; then echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"Edits to [tool.ruff]/[tool.mypy]/[tool.pytest]/[tool.coverage] need explicit user approval.\"}}'; fi ;; esac || true",
+            "timeout": 5,
+            "statusMessage": "Config protection..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); file=$(echo \"$input\" | python -c \"import sys,json; d=json.loads(sys.stdin.read()); print(d.get('tool_input',{}).get('file_path', d.get('tool_response',{}).get('filePath','')))\" 2>/dev/null || echo ''); case \"$file\" in *.py) cd \"$CLAUDE_PROJECT_DIR\" 2>/dev/null && uv run ruff check --fix \"$file\" 2>/dev/null && uv run ruff format \"$file\" 2>/dev/null ;; esac || true",
+            "timeout": 15,
+            "statusMessage": "Auto-formatting Python file..."
+          }
+        ]
+      }
+    ]
+  }
+}

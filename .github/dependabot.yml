@@ -1,0 +1,53 @@
+version: 2
+updates:
+  # GitHub Actions — weekly. Review manually. After merging, re-pin to full SHA.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # Python deps (uv reads pyproject.toml)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels: ["dependencies", "backend"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Critical pins — never auto-bump majors without a migration plan
+    ignore:
+      - dependency-name: "duckdb"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "polars"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "fastapi"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pydantic"
+        update-types: ["version-update:semver-major"]
+
+  # Frontend — enable only once frontend/ exists
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels: ["dependencies", "frontend"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]

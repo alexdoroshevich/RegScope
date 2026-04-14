@@ -1,0 +1,108 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.pyd
+
+# === Virtual environments ===
+.venv/
+venv/
+ENV/
+
+# === IDE / editor ===
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-*
+
+# === Environment & secrets ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# === Data (too large for git, often sensitive) ===
+data/raw/
+data/processed/
+data/*.db
+data/*.duckdb
+data/*.duckdb.wal
+*.parquet
+*.arrow
+*.feather
+
+# Keep directory structure placeholders
+!data/.gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/fixtures/
+
+# === Testing / coverage ===
+htmlcov/
+.coverage
+.coverage.*
+.pytest_cache/
+coverage.xml
+.hypothesis/
+
+# === Linting / type caches ===
+.mypy_cache/
+.ruff_cache/
+.pytype/
+
+# === Docker ===
+docker-compose.override.yml
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+bash.exe.stackdump
+
+# === Frontend (Node) ===
+frontend/node_modules/
+frontend/dist/
+frontend/.next/
+frontend/.env.local
+frontend/coverage/
+
+# === Logs ===
+*.log
+logs/
+
+# === Model caches (sentence-transformers, spaCy) ===
+# Cached in ~/.cache/huggingface/ — never in repo
+models/
+*.bin
+*.safetensors
+
+# === Internal planning / roadmap (NOT for public repo) ===
+docs/internal/
+.claude/private/
+.claude/sessions/
+.claude/repomix-output.xml
+.claude/agent-memory/
+.claude/worktrees/
+.claude/settings.local.json
+
+# Keep public .claude config visible so collaborators see agent/skill setup
+!.claude/settings.json
+!.claude/rules/
+!.claude/agents/
+!.claude/skills/
+!.claude/commands/
+
+# === Temporary / scratch ===
+tmp/
+scratch/
+*.tmp
+*.bak

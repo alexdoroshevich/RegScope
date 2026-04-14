@@ -1,0 +1,184 @@
+name: PR Quality Gate
+
+# Runs on every PR targeting main.
+# ALL jobs must pass before the PR can be merged (enforced by branch protection).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # ── Backend: lint + type + tests + coverage ────────────────────────────────
+  backend-gate:
+    name: Backend (ruff + mypy + pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
+        with:
+          version: "0.5.x"
+          enable-cache: true
+
+      - name: Install deps
+        run: uv sync --dev
+
+      - name: Download spaCy model
+        run: uv run python -m spacy download en_core_web_sm
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: mypy strict
+        run: uv run mypy data/ nlp/ api/ db/
+
+      - name: pytest (unit only, coverage ≥70%)
+        run: uv run pytest -m "not slow and not integration" --cov-fail-under=70 --tb=short -q
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
+        with:
+          name: coverage-html
+          path: htmlcov/
+          retention-days: 7
+
+      - name: Backend summary
+        if: always()
+        run: |
+          echo "## Backend Gate" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "✅ ruff + mypy + pytest passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ One or more checks failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ── Frontend: lint + type + tests (skipped if frontend/ absent) ────────────
+  frontend-gate:
+    name: Frontend (eslint + tsc + vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Detect frontend
+        id: detect
+        run: |
+          if [ -f frontend/package.json ]; then
+            echo "present=true" >> $GITHUB_OUTPUT
+          else
+            echo "present=false" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        if: steps.detect.outputs.present == 'true'
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        if: steps.detect.outputs.present == 'true'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        if: steps.detect.outputs.present == 'true'
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type check
+        if: steps.detect.outputs.present == 'true'
+        working-directory: frontend
+        run: npm run type-check
+
+      - name: Unit tests
+        if: steps.detect.outputs.present == 'true'
+        working-directory: frontend
+        run: npm test -- --run
+
+      - name: Skip notice
+        if: steps.detect.outputs.present == 'false'
+        run: echo "frontend/ not present yet — skipping." >> $GITHUB_STEP_SUMMARY
+
+  # ── Pre-commit hooks (file hygiene + large-file guard) ─────────────────────
+  pre-commit-gate:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install pre-commit
+      - run: pre-commit run --all-files --show-diff-on-failure
+
+  # ── PR metadata (only on PRs, not on push to main) ─────────────────────────
+  pr-metadata:
+    name: PR description filled
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const body = context.payload.pull_request.body || "";
+            if (body.trim().length < 200) {
+              core.setFailed("PR description under 200 chars. Fill in the template.");
+              return;
+            }
+            if (!body.includes("## What does this PR do?")) {
+              core.setFailed("Missing '## What does this PR do?' section.");
+              return;
+            }
+            if (!body.includes("## How to test")) {
+              core.setFailed("Missing '## How to test' section.");
+              return;
+            }
+            const placeholders = [
+              "<one specific paragraph about THIS change",
+              "<concrete step>",
+            ];
+            for (const p of placeholders) {
+              if (body.includes(p)) {
+                core.setFailed(`Unfilled placeholder: "${p}"`);
+                return;
+              }
+            }
+
+  # ── Summary gate: single required check for branch protection ─────────────
+  all-gates-passed:
+    name: All gates passed
+    runs-on: ubuntu-latest
+    needs: [backend-gate, frontend-gate, pre-commit-gate, pr-metadata]
+    if: always()
+    steps:
+      - name: Verify all upstream gates
+        run: |
+          fail=0
+          for r in "${{ needs.backend-gate.result }}" "${{ needs.frontend-gate.result }}" "${{ needs.pre-commit-gate.result }}" "${{ needs.pr-metadata.result }}"; do
+            case "$r" in
+              success|skipped) ;;
+              *) fail=1 ;;
+            esac
+          done
+          if [ $fail -eq 1 ]; then
+            echo "❌ One or more gates failed" && exit 1
+          fi
+          echo "✅ All gates passed"

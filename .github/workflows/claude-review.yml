@@ -1,0 +1,94 @@
+name: Claude PR Review
+
+# Automatically reviews every PR to main.
+# Also responds when someone comments "@claude" on a PR.
+# Required secret: ANTHROPIC_API_KEY
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+    branches: [main]
+  issue_comment:
+    types: [created]
+
+jobs:
+  claude-review:
+    name: Claude code review
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request != null &&
+       contains(github.event.comment.body, '@claude'))
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 1
+
+      # Pinned to v1.0.95 (SHA). Bump via Dependabot + manual SHA re-pin.
+      - uses: anthropics/claude-code-action@39431830520a7ae6c0c572f11a7707e7043325e3 # v1.0.95
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          claude_args: "--model claude-sonnet-4-6 --max-turns 15"
+          prompt: |
+            You are a senior engineer reviewing a PR for RegScope — an open-source
+            Federal Register regulatory-intelligence platform. Stack:
+            Python 3.11+, uv, DuckDB, Polars, FastAPI, sentence-transformers,
+            HDBSCAN, datasketch, spaCy, litellm, React+TS+Vite, Tailwind.
+
+            IMPORTANT: Work only from the PR diff. Do NOT run shell commands or
+            read the filesystem — all context you need is in the diff.
+
+            ## Review each category (skip none)
+
+            ### Security (block if found)
+            - Hardcoded secrets, API keys, tokens anywhere in code or comments
+            - SQL injection via f-string/% formatting in DuckDB .execute/.sql
+            - PII or raw comment text in logs above DEBUG level
+            - CORS wildcard * in production code
+            - .env values committed
+            - `dangerouslySetInnerHTML` without sanitization (React)
+
+            ### Correctness (block if found)
+            - Missing await on async calls
+            - .scalar_one_or_none() / dict.get used without None check
+            - Pandera schema skipped at pipeline boundary
+            - LLM call without response caching
+            - Re-embedding comments with a non-NULL embedding column (always a bug)
+            - Off-by-one in Regulations.gov pagination (page[number] is 1-indexed)
+
+            ### Architecture & conventions (may block)
+            - `pandas` import (must be Polars)
+            - `requests` import (must be httpx)
+            - `SQLAlchemy` import (must be raw DuckDB)
+            - `print()` instead of logging
+            - Missing type hints
+            - CSS modules or inline styles in frontend (Tailwind only)
+            - TypeScript `any` type
+            - Inline SQL with user input not parameterized
+            - `useSearchParams()` without Suspense boundary
+
+            ### Performance (comment)
+            - N+1 DuckDB queries inside Python loops (use JOIN)
+            - Unbounded `.collect()` on huge Polars LazyFrames
+            - Sync HTTP call inside async route
+            - Missing HNSW index for semantic search
+
+            ### Scope discipline
+            - New dep added without justification in PR body
+            - Feature outside MVP (MVP = astroturf detector + cluster analyzer)
+              — flag as scope-creep unless explicitly approved
+
+            ## Response format
+            - Quote exact lines for each issue
+            - Explain WHY it's a problem and HOW to fix it — in words, no code blocks
+            - Don't flag style issues Ruff/mypy already catch
+            - If a category is clean, say so in one line
+            - End with exactly one verdict: ✅ APPROVED, ⚠️ NEEDS CHANGES, or 💬 COMMENT ONLY

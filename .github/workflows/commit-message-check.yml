@@ -1,0 +1,41 @@
+name: Conventional commit messages
+
+# Validates every commit in a PR matches Conventional Commits.
+# Also allows merge commits (we use squash-merge, so this catches the squash title too).
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  check-commits:
+    name: Validate commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+      - name: Check each commit
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          PATTERN='^(feat|fix|chore|docs|style|ci|refactor|perf|test|build|revert)(\([\w/-]+\))?!?:\s.+$|^Merge\s(branch|remote|pull)'
+          FAIL=0
+          while IFS= read -r msg; do
+            if ! echo "$msg" | grep -qP "$PATTERN"; then
+              echo "::error::Bad commit message: $msg"
+              echo "   Expected: feat: short desc  |  fix(ingest): token expiry"
+              FAIL=1
+            fi
+          done < <(git log --format=%s "$BASE..$HEAD")
+          if [ "$FAIL" = "1" ]; then
+            echo ""
+            echo "Allowed types: feat, fix, chore, docs, style, ci, refactor, perf, test, build, revert"
+            exit 1
+          fi
+          echo "✅ All commit messages valid."
