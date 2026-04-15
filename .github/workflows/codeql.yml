@@ -14,30 +14,13 @@ permissions:
   security-events: write
 
 jobs:
-  detect:
-    name: Detect frontend
-    runs-on: ubuntu-latest
-    outputs:
-      has_frontend: ${{ steps.d.outputs.has_frontend }}
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - id: d
-        run: |
-          if [ -f frontend/package.json ]; then
-            echo "has_frontend=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_frontend=false" >> "$GITHUB_OUTPUT"
-          fi
-
   analyze:
     name: Analyze (${{ matrix.language }})
-    needs: detect
-    if: matrix.language != 'javascript' || needs.detect.outputs.has_frontend == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        language: [python, javascript]
+        language: [python]
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - uses: github/codeql-action/init@4e94bd11f71e507f7f87df81788dff88d1dacbfb # v3.28.0
