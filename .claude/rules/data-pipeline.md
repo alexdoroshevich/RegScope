@@ -15,7 +15,7 @@ paths:
 - Include a `fetched_at` timestamp column on every raw row.
 
 ## Processing (`data/process/`)
-- Pandera schema BEFORE and AFTER every transform.
+- Polars-native schema validation (`data.validation.validate`) BEFORE and AFTER every transform.
 - Idempotent: running twice produces the same output.
 - Never mutate raw Parquet. Always write to `data/processed/`.
 

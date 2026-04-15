@@ -6,7 +6,7 @@ It analyzes public comments on federal regulations to detect astroturf campaigns
 cluster comments by topic, and map cross-rule regulatory impact.
 
 ## Tech Stack (DO NOT deviate without explicit approval)
-- **Python 3.11+** — all backend code
+- **Python 3.13+** — all backend code
 - **uv** — package manager (NOT pip, NOT poetry, NOT conda)
 - **DuckDB 1.1+** — analytical database (NOT PostgreSQL, NOT SQLite for analytics)
 - **Polars 1.x** — data processing (NOT pandas unless interfacing with legacy libs)

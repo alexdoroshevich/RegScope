@@ -9,7 +9,7 @@ paths:
 - Every function has type hints on params AND return type. mypy strict mode.
 - `from __future__ import annotations` at the top of every `.py` file.
 - Use Pydantic v2 `BaseModel` for API request/response schemas.
-- Use Pandera for DataFrame schema validation at pipeline boundaries.
+- Use polars-native validators at pipeline boundaries (see `data.validation.validate`). Pandera is forbidden — it pulls pandas. See ADR-0001.
 
 ## Formatting
 - Ruff handles both lint and format. 100 char line length.

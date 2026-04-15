@@ -27,7 +27,7 @@ RegScope analyzes millions of public comments on federal regulations to:
 git clone https://github.com/[you]/regscope.git
 cd regscope
 
-# Setup (requires Python 3.11+ and uv)
+# Setup (requires Python 3.13+ and uv)
 make setup
 
 # Configure API keys
