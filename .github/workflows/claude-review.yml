@@ -40,7 +40,7 @@ jobs:
           prompt: |
             You are a senior engineer reviewing a PR for RegScope — an open-source
             Federal Register regulatory-intelligence platform. Stack:
-            Python 3.11+, uv, DuckDB, Polars, FastAPI, sentence-transformers,
+            Python 3.13+, uv, DuckDB, Polars, FastAPI, sentence-transformers,
             HDBSCAN, datasketch, spaCy, litellm, React+TS+Vite, Tailwind.
 
             IMPORTANT: Work only from the PR diff. Do NOT run shell commands or

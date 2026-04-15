@@ -18,7 +18,7 @@ RegScope's value comes from two features that work together:
 Citation Graph and NL Query are **post-MVP**. If asked to design them before features 1+2 ship, state the scope lock and confirm before proceeding.
 
 ## Non-negotiable stack invariants
-- Python 3.11+, `uv`, DuckDB + Parquet (source of truth), Polars (not pandas), httpx (not requests), raw DuckDB SQL (not SQLAlchemy), `sentence-transformers` local (not hosted API), `litellm` + `gpt-4o-mini` with response caching, Ruff + mypy strict, pytest `--cov-fail-under=70`.
+- Python 3.13+, `uv`, DuckDB + Parquet (source of truth), Polars (not pandas), httpx (not requests), raw DuckDB SQL (not SQLAlchemy), `sentence-transformers` local (not hosted API), `litellm` + `gpt-4o-mini` with response caching, Ruff + mypy strict, pytest `--cov-fail-under=70`.
 - Forbidden: Spark, Airflow, Kafka, Jupyter-in-repo, pandas, requests, SQLAlchemy, `print()`, localStorage, CSS modules.
 
 ## When recommending a feature, output this shape
