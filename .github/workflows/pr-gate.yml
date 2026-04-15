@@ -127,10 +127,10 @@ jobs:
       - run: pip install pre-commit
       - run: pre-commit run --all-files --show-diff-on-failure
 
-  # ── PR metadata (only on PRs, not on push to main) ─────────────────────────
+  # ── PR metadata (only on PRs, not on push to main; exempt Dependabot) ──────
   pr-metadata:
     name: PR description filled
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
