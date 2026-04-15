@@ -82,6 +82,8 @@ logs/
 # === Model caches (sentence-transformers, spaCy) ===
 # Cached in ~/.cache/huggingface/ — never in repo
 models/
+# api/models/ is a Pydantic schemas package, not an ML-weight cache — keep tracked.
+!api/models/
 *.bin
 *.safetensors
 
