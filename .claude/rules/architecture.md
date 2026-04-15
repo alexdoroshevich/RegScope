@@ -10,7 +10,7 @@ paths:
 # Architecture Rules (non-negotiable)
 
 ## Stack invariants
-- Python 3.11+, `uv` for packages. Never `pip install` directly.
+- Python 3.13+, `uv` for packages. Never `pip install` directly.
 - **DuckDB** is the analytical store. No PostgreSQL, no SQLite for analytics, no Spark.
 - **Polars** for dataframes. No pandas (unless interfacing legacy libs — isolated in adapter).
 - **Parquet on disk = source of truth.** DuckDB reads from Parquet; data survives DB restarts.
@@ -21,7 +21,7 @@ paths:
 
 ## Data flow (never reorder)
 1. `data/ingest/` — fetch raw → Parquet
-2. `data/process/` — clean + Pandera-validate → Parquet
+2. `data/process/` — clean + polars-native validate (`data.validation.validate`) → Parquet
 3. `db/` — DuckDB reads Parquet
 4. `api/` — FastAPI serves DuckDB queries
 5. `frontend/` — React consumes API
