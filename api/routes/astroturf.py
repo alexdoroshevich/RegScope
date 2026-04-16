@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-import duckdb  # noqa: TC002 — runtime-required for FastAPI annotation resolution
+import duckdb
 from fastapi import APIRouter, Depends, Query
 
 from api.deps import get_db
