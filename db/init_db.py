@@ -53,9 +53,7 @@ def load_comments_parquet(
 
     Returns the number of rows loaded from the Parquet file.
     """
-    count_row = conn.execute(
-        "SELECT COUNT(*) FROM read_parquet(?)", [parquet_glob]
-    ).fetchone()
+    count_row = conn.execute("SELECT COUNT(*) FROM read_parquet(?)", [parquet_glob]).fetchone()
     count = int(count_row[0]) if count_row else 0
     conn.execute(
         """
@@ -79,9 +77,7 @@ def load_duplicate_groups(
     groups_parquet: str,
 ) -> int:
     """Load duplicate-group results from Parquet into the duplicate_groups table."""
-    count_row = conn.execute(
-        "SELECT COUNT(*) FROM read_parquet(?)", [groups_parquet]
-    ).fetchone()
+    count_row = conn.execute("SELECT COUNT(*) FROM read_parquet(?)", [groups_parquet]).fetchone()
     count = int(count_row[0]) if count_row else 0
     conn.execute(
         """
@@ -99,9 +95,7 @@ def load_cluster_assignments(
     clusters_parquet: str,
 ) -> int:
     """Load cluster assignments from Parquet into the comment_clusters table."""
-    count_row = conn.execute(
-        "SELECT COUNT(*) FROM read_parquet(?)", [clusters_parquet]
-    ).fetchone()
+    count_row = conn.execute("SELECT COUNT(*) FROM read_parquet(?)", [clusters_parquet]).fetchone()
     count = int(count_row[0]) if count_row else 0
     conn.execute(
         """

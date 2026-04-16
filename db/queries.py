@@ -50,18 +50,29 @@ def get_duplicate_groups(
     offset: int = 0,
 ) -> list[dict[str, object]]:
     """Fetch duplicate groups, optionally filtered to astroturf campaigns."""
-    where = "WHERE is_astroturf = true" if astroturf_only else ""
-    result = conn.execute(
-        f"""
-        SELECT group_id, comment_ids, group_size, unique_submitters,
-               campaign_likelihood, is_astroturf, template_text
-        FROM duplicate_groups
-        {where}
-        ORDER BY campaign_likelihood DESC
-        LIMIT ? OFFSET ?
-        """,
-        [limit, offset],
-    )
+    if astroturf_only:
+        result = conn.execute(
+            """
+            SELECT group_id, comment_ids, group_size, unique_submitters,
+                   campaign_likelihood, is_astroturf, template_text
+            FROM duplicate_groups
+            WHERE is_astroturf = true
+            ORDER BY campaign_likelihood DESC
+            LIMIT ? OFFSET ?
+            """,
+            [limit, offset],
+        )
+    else:
+        result = conn.execute(
+            """
+            SELECT group_id, comment_ids, group_size, unique_submitters,
+                   campaign_likelihood, is_astroturf, template_text
+            FROM duplicate_groups
+            ORDER BY campaign_likelihood DESC
+            LIMIT ? OFFSET ?
+            """,
+            [limit, offset],
+        )
     columns = [desc[0] for desc in result.description]
     return [dict(zip(columns, row, strict=True)) for row in result.fetchall()]
 
