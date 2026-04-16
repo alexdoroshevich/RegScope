@@ -58,7 +58,7 @@ select = [
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"api/routes/*.py" = ["TCH002"]
+"api/routes/*.py" = ["TCH"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["data", "nlp", "api", "db"]
