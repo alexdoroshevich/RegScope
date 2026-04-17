@@ -81,14 +81,59 @@ def get_clusters_by_docket(
     conn: duckdb.DuckDBPyConnection,
     docket_id: str,
 ) -> list[dict[str, object]]:
-    """Fetch cluster assignments for a docket."""
+    """Fetch cluster summaries for a docket, including LLM labels when available."""
     result = conn.execute(
         """
-        SELECT cc.cluster_id, COUNT(*) as comment_count
+        SELECT cc.cluster_id,
+               COUNT(*) as comment_count,
+               cl.label,
+               cl.summary
         FROM comment_clusters cc
+        LEFT JOIN cluster_labels cl
+            ON cc.docket_id = cl.docket_id AND cc.cluster_id = cl.cluster_id
         WHERE cc.docket_id = ?
-        GROUP BY cc.cluster_id
+        GROUP BY cc.cluster_id, cl.label, cl.summary
         ORDER BY comment_count DESC
+        """,
+        [docket_id],
+    )
+    columns = [desc[0] for desc in result.description]
+    return [dict(zip(columns, row, strict=True)) for row in result.fetchall()]
+
+
+def upsert_cluster_label(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    docket_id: str,
+    cluster_id: int,
+    label: str,
+    summary: str,
+    prompt_hash: str,
+    model: str,
+    cost_usd: float,
+) -> None:
+    """Insert or update a cluster label."""
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO cluster_labels
+            (docket_id, cluster_id, label, summary, prompt_hash, model, cost_usd)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        [docket_id, cluster_id, label, summary, prompt_hash, model, cost_usd],
+    )
+
+
+def get_cluster_labels(
+    conn: duckdb.DuckDBPyConnection,
+    docket_id: str,
+) -> list[dict[str, object]]:
+    """Fetch all cluster labels for a docket."""
+    result = conn.execute(
+        """
+        SELECT docket_id, cluster_id, label, summary, prompt_hash, model, cost_usd
+        FROM cluster_labels
+        WHERE docket_id = ?
+        ORDER BY cluster_id
         """,
         [docket_id],
     )
