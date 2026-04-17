@@ -1,0 +1,22 @@
+export interface AstroturfSummary {
+  total_groups: number;
+  astroturf_groups: number;
+  total_flagged_comments: number;
+  max_campaign_likelihood: number;
+}
+
+export interface DuplicateGroup {
+  group_id: number;
+  comment_ids: string[];
+  group_size: number;
+  unique_submitters: number;
+  campaign_likelihood: number;
+  is_astroturf: boolean;
+  template_text: string | null;
+}
+
+export interface DuplicateGroupListResponse {
+  items: DuplicateGroup[];
+  limit: number;
+  offset: number;
+}
