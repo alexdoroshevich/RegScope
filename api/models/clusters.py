@@ -6,10 +6,12 @@ from pydantic import BaseModel
 
 
 class ClusterSummary(BaseModel):
-    """Cluster with its comment count."""
+    """Cluster with its comment count and optional LLM label."""
 
     cluster_id: int
     comment_count: int
+    label: str | None = None
+    summary: str | None = None
 
 
 class ClusterCommentOut(BaseModel):

@@ -15,9 +15,11 @@ from db.queries import (
     count_comments_by_docket,
     get_astroturf_summary,
     get_cluster_comments,
+    get_cluster_labels,
     get_clusters_by_docket,
     get_comments_by_docket,
     get_duplicate_groups,
+    upsert_cluster_label,
 )
 
 
@@ -76,11 +78,12 @@ class TestSchema:
         assert "comments" in table_names
         assert "duplicate_groups" in table_names
         assert "comment_clusters" in table_names
+        assert "cluster_labels" in table_names
 
     def test_idempotent_schema(self, db: duckdb.DuckDBPyConnection) -> None:
         init_schema(db)
         tables = db.execute("SHOW TABLES").fetchall()
-        assert len(tables) == 3
+        assert len(tables) == 4
 
 
 class TestLoadCommentsParquet:
@@ -155,3 +158,53 @@ class TestQueries:
         assert summary["total_groups"] == 2
         assert summary["astroturf_groups"] == 1
         assert summary["max_campaign_likelihood"] == 6.0
+
+    def test_get_clusters_includes_labels(self, seeded_db: duckdb.DuckDBPyConnection) -> None:
+        upsert_cluster_label(
+            seeded_db,
+            docket_id="DOC-001",
+            cluster_id=0,
+            label="Support",
+            summary="Comments supporting the rule",
+            prompt_hash="abc",
+            model="gpt-4o-mini",
+            cost_usd=0.001,
+        )
+        results = get_clusters_by_docket(seeded_db, "DOC-001")
+        labeled = next(r for r in results if r["cluster_id"] == 0)
+        assert labeled["label"] == "Support"
+        assert labeled["summary"] == "Comments supporting the rule"
+
+    def test_get_clusters_without_labels(self, seeded_db: duckdb.DuckDBPyConnection) -> None:
+        results = get_clusters_by_docket(seeded_db, "DOC-001")
+        for r in results:
+            assert r["label"] is None
+
+    def test_upsert_cluster_label(self, seeded_db: duckdb.DuckDBPyConnection) -> None:
+        upsert_cluster_label(
+            seeded_db,
+            docket_id="DOC-001",
+            cluster_id=0,
+            label="V1",
+            summary="First version",
+            prompt_hash="h1",
+            model="gpt-4o-mini",
+            cost_usd=0.001,
+        )
+        upsert_cluster_label(
+            seeded_db,
+            docket_id="DOC-001",
+            cluster_id=0,
+            label="V2",
+            summary="Updated version",
+            prompt_hash="h2",
+            model="gpt-4o-mini",
+            cost_usd=0.002,
+        )
+        labels = get_cluster_labels(seeded_db, "DOC-001")
+        assert len(labels) == 1
+        assert labels[0]["label"] == "V2"
+
+    def test_get_cluster_labels_empty(self, seeded_db: duckdb.DuckDBPyConnection) -> None:
+        labels = get_cluster_labels(seeded_db, "DOC-999")
+        assert labels == []
