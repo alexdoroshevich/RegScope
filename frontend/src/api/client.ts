@@ -1,5 +1,7 @@
 import type {
   AstroturfSummary,
+  ClusterComment,
+  ClusterSummary,
   DuplicateGroupListResponse,
 } from "../types/api";
 
@@ -29,5 +31,23 @@ export function getDuplicateGroups(
   });
   return fetchJson<DuplicateGroupListResponse>(
     `/astroturf/groups?${params.toString()}`,
+  );
+}
+
+export function getClustersByDocket(
+  docketId: string,
+): Promise<ClusterSummary[]> {
+  return fetchJson<ClusterSummary[]>(
+    `/clusters/${encodeURIComponent(docketId)}`,
+  );
+}
+
+export function getClusterComments(
+  docketId: string,
+  clusterId: number,
+  limit = 50,
+): Promise<ClusterComment[]> {
+  return fetchJson<ClusterComment[]>(
+    `/clusters/${encodeURIComponent(docketId)}/${clusterId}?limit=${limit}`,
   );
 }

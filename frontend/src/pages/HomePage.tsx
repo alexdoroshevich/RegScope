@@ -18,6 +18,15 @@ export function HomePage() {
             Identify duplicate comment campaigns and template-driven submissions.
           </p>
         </Link>
+        <Link
+          to="/clusters"
+          className="rounded-lg border border-slate-200 bg-white p-6 hover:bg-slate-50 transition"
+        >
+          <div className="text-xl font-semibold">Comment Clusters</div>
+          <p className="mt-2 text-slate-600">
+            Explore topic clusters within a docket, labeled by AI.
+          </p>
+        </Link>
       </div>
     </div>
   );
