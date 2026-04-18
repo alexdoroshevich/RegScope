@@ -20,3 +20,16 @@ export interface DuplicateGroupListResponse {
   limit: number;
   offset: number;
 }
+
+export interface ClusterSummary {
+  cluster_id: number;
+  comment_count: number;
+  label: string | null;
+  summary: string | null;
+}
+
+export interface ClusterComment {
+  comment_id: string;
+  comment_text: string | null;
+  submitter_name: string | null;
+}

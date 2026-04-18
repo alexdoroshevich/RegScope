@@ -12,15 +12,18 @@ describe("App", () => {
     );
     expect(screen.getByRole("heading", { name: "RegScope" })).toBeInTheDocument();
     expect(screen.getByText(/Astroturf Detector/)).toBeInTheDocument();
+    expect(screen.getByText(/Comment Clusters/)).toBeInTheDocument();
   });
 
-  it("renders the top nav", () => {
+  it("renders the top nav with both feature links", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <App />
       </MemoryRouter>,
     );
     const links = screen.getAllByRole("link");
-    expect(links.map((l) => l.getAttribute("href"))).toContain("/astroturf");
+    const hrefs = links.map((l) => l.getAttribute("href"));
+    expect(hrefs).toContain("/astroturf");
+    expect(hrefs).toContain("/clusters");
   });
 });

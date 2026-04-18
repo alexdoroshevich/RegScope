@@ -1,5 +1,6 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { AstroturfPage } from "./pages/AstroturfPage";
+import { ClustersPage } from "./pages/ClustersPage";
 import { HomePage } from "./pages/HomePage";
 
 export default function App() {
@@ -13,12 +14,16 @@ export default function App() {
           <Link to="/astroturf" className="text-slate-600 hover:text-slate-900">
             Astroturf
           </Link>
+          <Link to="/clusters" className="text-slate-600 hover:text-slate-900">
+            Clusters
+          </Link>
         </nav>
       </header>
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/astroturf" element={<AstroturfPage />} />
+          <Route path="/clusters" element={<ClustersPage />} />
         </Routes>
       </main>
     </div>
