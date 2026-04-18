@@ -1,15 +1,21 @@
-# === Builder stage ===
+# === Frontend build stage ===
+FROM node:20-slim AS frontend
+
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY frontend/ ./
+RUN npm run build
+
+# === Python builder stage ===
 FROM python:3.13-slim AS builder
 
 WORKDIR /app
 
-# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Copy dependency files
 COPY pyproject.toml uv.lock* ./
 
-# Install dependencies
 RUN uv sync --frozen --no-dev
 
 # === Runtime stage ===
@@ -17,21 +23,18 @@ FROM python:3.13-slim AS runtime
 
 WORKDIR /app
 
-# Copy virtual environment from builder
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Download spaCy model
 RUN python -m spacy download en_core_web_sm
 
-# Copy application code
 COPY data/ data/
 COPY nlp/ nlp/
 COPY api/ api/
 COPY db/ db/
+COPY scripts/ scripts/
 
-# Copy pre-built data (if available)
-# COPY data/processed/ data/processed/
+COPY --from=frontend /app/frontend/dist frontend/dist
 
 EXPOSE 8000
 

@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from api.config import get_settings
 from api.logging_setup import configure_logging
 from api.routes import astroturf, clusters, comments
+
+_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 def create_app() -> FastAPI:
@@ -23,6 +29,19 @@ def create_app() -> FastAPI:
     application.include_router(comments.router, prefix="/api/v1")
     application.include_router(clusters.router, prefix="/api/v1")
     application.include_router(astroturf.router, prefix="/api/v1")
+
+    if _FRONTEND_DIST.is_dir():
+        application.mount(
+            "/assets", StaticFiles(directory=_FRONTEND_DIST / "assets"), name="assets"
+        )
+
+        @application.get("/{full_path:path}")
+        async def _spa_fallback(full_path: str) -> FileResponse:
+            """Serve index.html for all non-API routes (SPA client-side routing)."""
+            file = _FRONTEND_DIST / full_path
+            if file.is_file() and not full_path.startswith("api/"):
+                return FileResponse(file)
+            return FileResponse(_FRONTEND_DIST / "index.html")
 
     return application
 
