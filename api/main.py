@@ -38,8 +38,12 @@ def create_app() -> FastAPI:
         @application.get("/{full_path:path}")
         async def _spa_fallback(full_path: str) -> FileResponse:
             """Serve index.html for all non-API routes (SPA client-side routing)."""
-            file = _FRONTEND_DIST / full_path
-            if file.is_file() and not full_path.startswith("api/"):
+            file = (_FRONTEND_DIST / full_path).resolve()
+            if (
+                file.is_relative_to(_FRONTEND_DIST)
+                and file.is_file()
+                and not full_path.startswith("api/")
+            ):
                 return FileResponse(file)
             return FileResponse(_FRONTEND_DIST / "index.html")
 
