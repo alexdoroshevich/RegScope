@@ -2,8 +2,8 @@
 
 ## Overview
 
-RegScope is a single-machine analytical platform that ingests federal regulatory comments,
-detects coordinated astroturf campaigns, and clusters comments by topic.
+RegScope is a single-machine analytical platform that ingests US federal regulatory
+comments, detects coordinated astroturf campaigns, and clusters comments by topic.
 All processing fits comfortably on one machine (~30 GB dataset).
 
 ## Data Flow
