@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.config import get_settings
@@ -31,21 +30,9 @@ def create_app() -> FastAPI:
     application.include_router(astroturf.router, prefix="/api/v1")
 
     if _FRONTEND_DIST.is_dir():
-        application.mount(
-            "/assets", StaticFiles(directory=_FRONTEND_DIST / "assets"), name="assets"
-        )
-
-        _index = _FRONTEND_DIST / "index.html"
-
-        @application.get("/{full_path:path}")
-        async def _spa_fallback(full_path: str) -> FileResponse:
-            """Serve index.html for all non-API routes (SPA client-side routing)."""
-            if ".." in full_path or full_path.startswith("api/"):
-                return FileResponse(_index)
-            file = (_FRONTEND_DIST / full_path).resolve()
-            if file.is_relative_to(_FRONTEND_DIST) and file.is_file():
-                return FileResponse(file)
-            return FileResponse(_index)
+        # html=True enables SPA fallback: unknown paths → index.html.
+        # No user input touches the filesystem; StaticFiles handles path resolution internally.
+        application.mount("/", StaticFiles(directory=_FRONTEND_DIST, html=True), name="spa")
 
     return application
 
