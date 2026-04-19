@@ -25,7 +25,12 @@ class TestAstroturfSummary:
 
     def test_summary_schema(self, api_client: TestClient) -> None:
         body = api_client.get("/api/v1/astroturf/summary").json()
-        for key in ("total_groups", "astroturf_groups", "total_flagged_comments", "max_campaign_likelihood"):
+        for key in (
+            "total_groups",
+            "astroturf_groups",
+            "total_flagged_comments",
+            "max_campaign_likelihood",
+        ):
             assert key in body
 
 
@@ -51,11 +56,23 @@ class TestAstroturfGroups:
         assert likelihoods == sorted(likelihoods, reverse=True)
 
     def test_groups_pagination(self, api_client: TestClient) -> None:
-        ids1 = {i["group_id"] for i in api_client.get("/api/v1/astroturf/groups?limit=1&offset=0").json()["items"]}
-        ids2 = {i["group_id"] for i in api_client.get("/api/v1/astroturf/groups?limit=1&offset=1").json()["items"]}
+        ids1 = {
+            i["group_id"]
+            for i in api_client.get("/api/v1/astroturf/groups?limit=1&offset=0").json()["items"]
+        }
+        ids2 = {
+            i["group_id"]
+            for i in api_client.get("/api/v1/astroturf/groups?limit=1&offset=1").json()["items"]
+        }
         assert ids1.isdisjoint(ids2)
 
     def test_groups_item_schema(self, api_client: TestClient) -> None:
         item = api_client.get("/api/v1/astroturf/groups?limit=1").json()["items"][0]
-        for key in ("group_id", "group_size", "unique_submitters", "campaign_likelihood", "is_astroturf"):
+        for key in (
+            "group_id",
+            "group_size",
+            "unique_submitters",
+            "campaign_likelihood",
+            "is_astroturf",
+        ):
             assert key in item

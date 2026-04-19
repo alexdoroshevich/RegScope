@@ -46,12 +46,20 @@ class TestListComments:
         assert body["total"] == 3
 
     def test_offset_param(self, api_client: TestClient) -> None:
-        all_ids = [i["comment_id"] for i in api_client.get(f"/api/v1/comments/{_DOCKET}").json()["items"]]
+        all_ids = [
+            i["comment_id"] for i in api_client.get(f"/api/v1/comments/{_DOCKET}").json()["items"]
+        ]
         page2 = api_client.get(f"/api/v1/comments/{_DOCKET}?limit=2&offset=2").json()["items"]
         assert len(page2) == 1
         assert page2[0]["comment_id"] not in [all_ids[0], all_ids[1]] or len(all_ids) > 2
 
     def test_pagination_no_overlap(self, api_client: TestClient) -> None:
-        p1 = {i["comment_id"] for i in api_client.get(f"/api/v1/comments/{_DOCKET}?limit=2&offset=0").json()["items"]}
-        p2 = {i["comment_id"] for i in api_client.get(f"/api/v1/comments/{_DOCKET}?limit=2&offset=2").json()["items"]}
+        p1 = {
+            i["comment_id"]
+            for i in api_client.get(f"/api/v1/comments/{_DOCKET}?limit=2&offset=0").json()["items"]
+        }
+        p2 = {
+            i["comment_id"]
+            for i in api_client.get(f"/api/v1/comments/{_DOCKET}?limit=2&offset=2").json()["items"]
+        }
         assert p1.isdisjoint(p2)
