@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from api.config import get_settings
 from api.logging_setup import configure_logging
 from api.routes import astroturf, clusters, comments
+
+_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 def create_app() -> FastAPI:
@@ -23,6 +28,11 @@ def create_app() -> FastAPI:
     application.include_router(comments.router, prefix="/api/v1")
     application.include_router(clusters.router, prefix="/api/v1")
     application.include_router(astroturf.router, prefix="/api/v1")
+
+    if _FRONTEND_DIST.is_dir():
+        # html=True enables SPA fallback: unknown paths → index.html.
+        # No user input touches the filesystem; StaticFiles handles path resolution internally.
+        application.mount("/", StaticFiles(directory=_FRONTEND_DIST, html=True), name="spa")
 
     return application
 
