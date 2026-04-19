@@ -1,4 +1,14 @@
 import { useCallback, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { getClusterComments, getClustersByDocket } from "../api/client";
 import { SummaryCard } from "../components/SummaryCard";
 import type { ClusterComment, ClusterSummary } from "../types/api";
@@ -99,6 +109,41 @@ export function ClustersPage() {
             <SummaryCard label="Total comments" value={totalComments} />
             <SummaryCard label="Labeled" value={`${labeledCount} / ${clusters.length}`} />
           </div>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">Comments per cluster</h2>
+            <div className="rounded-lg border border-slate-200 bg-white p-4 mb-6">
+              <ResponsiveContainer width="100%" height={Math.max(200, clusters.length * 36)}>
+                <BarChart
+                  data={clusters.slice(0, 25).map((c) => ({
+                    name: c.label ?? `#${c.cluster_id}`,
+                    comments: c.comment_count,
+                    clusterId: c.cluster_id,
+                  }))}
+                  layout="vertical"
+                  margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={160}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <Tooltip />
+                  <Bar dataKey="comments" radius={[0, 4, 4, 0]}>
+                    {clusters.slice(0, 25).map((c) => (
+                      <Cell
+                        key={c.cluster_id}
+                        fill={c.cluster_id === -1 ? "#94a3b8" : "#3b82f6"}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
 
           <section>
             <h2 className="text-xl font-semibold mb-3">Clusters</h2>
