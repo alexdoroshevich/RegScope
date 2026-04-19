@@ -17,6 +17,7 @@ export interface DuplicateGroup {
 
 export interface DuplicateGroupListResponse {
   items: DuplicateGroup[];
+  total: number;
   limit: number;
   offset: number;
 }
