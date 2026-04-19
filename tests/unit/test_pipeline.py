@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 
-from scripts.pipeline import _dedup, _parse_args, _process, main
+from scripts.pipeline import _dedup, _parse_args, main
 
 if TYPE_CHECKING:
     from pathlib import Path
