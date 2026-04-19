@@ -77,6 +77,21 @@ def get_duplicate_groups(
     return [dict(zip(columns, row, strict=True)) for row in result.fetchall()]
 
 
+def count_duplicate_groups(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    astroturf_only: bool = False,
+) -> int:
+    """Return total number of duplicate groups, optionally filtered to astroturf."""
+    if astroturf_only:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM duplicate_groups WHERE is_astroturf = true"
+        ).fetchone()
+    else:
+        row = conn.execute("SELECT COUNT(*) FROM duplicate_groups").fetchone()
+    return int(row[0]) if row else 0
+
+
 def get_clusters_by_docket(
     conn: duckdb.DuckDBPyConnection,
     docket_id: str,

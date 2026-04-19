@@ -13,7 +13,7 @@ from api.models.astroturf import (
     DuplicateGroupListResponse,
     DuplicateGroupOut,
 )
-from db.queries import get_astroturf_summary, get_duplicate_groups
+from db.queries import count_duplicate_groups, get_astroturf_summary, get_duplicate_groups
 
 router = APIRouter(prefix="/astroturf", tags=["astroturf"])
 
@@ -28,8 +28,10 @@ def list_duplicate_groups(
 ) -> DuplicateGroupListResponse:
     """Return duplicate comment groups, optionally filtered to astroturf."""
     rows = get_duplicate_groups(db, astroturf_only=astroturf_only, limit=limit, offset=offset)
+    total = count_duplicate_groups(db, astroturf_only=astroturf_only)
     return DuplicateGroupListResponse(
         items=[DuplicateGroupOut.model_validate(r) for r in rows],
+        total=total,
         limit=limit,
         offset=offset,
     )

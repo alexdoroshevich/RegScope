@@ -21,6 +21,7 @@ class DuplicateGroupListResponse(BaseModel):
     """Paginated list of duplicate groups."""
 
     items: list[DuplicateGroupOut]
+    total: int
     limit: int
     offset: int
 
