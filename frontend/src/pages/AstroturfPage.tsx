@@ -1,4 +1,13 @@
 import { useEffect, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { getAstroturfSummary, getDuplicateGroups } from "../api/client";
 import { SummaryCard } from "../components/SummaryCard";
 import type { AstroturfSummary, DuplicateGroup } from "../types/api";
@@ -59,6 +68,31 @@ export function AstroturfPage() {
           />
         </div>
       )}
+      {groups.length > 0 && (
+        <section>
+          <h2 className="text-xl font-semibold mb-3">Campaign likelihood</h2>
+          <div className="rounded-lg border border-slate-200 bg-white p-4">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={groups.map((g) => ({
+                  name: `#${g.group_id}`,
+                  likelihood: Number(g.campaign_likelihood.toFixed(2)),
+                  size: g.group_size,
+                }))}
+                margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="likelihood" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="size" fill="#fca5a5" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
+
       <section>
         <h2 className="text-xl font-semibold mb-3">
           Suspected campaigns ({groups.length})
