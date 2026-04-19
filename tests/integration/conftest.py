@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
 from typing import TYPE_CHECKING
 
 import duckdb
@@ -14,7 +13,7 @@ from api.main import app
 from db.init_db import init_schema
 
 if TYPE_CHECKING:
-    pass
+    from collections.abc import Generator
 
 _DOCKET = "EPA-HQ-OAR-2021-0317"
 
@@ -61,7 +60,7 @@ def _seed(conn: duckdb.DuckDBPyConnection) -> None:
 
 
 @pytest.fixture()
-def db_conn() -> Generator[duckdb.DuckDBPyConnection, None, None]:
+def db_conn() -> Generator[duckdb.DuckDBPyConnection]:
     """In-memory DuckDB with schema and seed data, torn down after each test."""
     conn = duckdb.connect(":memory:")
     init_schema(conn)
@@ -71,10 +70,10 @@ def db_conn() -> Generator[duckdb.DuckDBPyConnection, None, None]:
 
 
 @pytest.fixture()
-def api_client(db_conn: duckdb.DuckDBPyConnection) -> Generator[TestClient, None, None]:
+def api_client(db_conn: duckdb.DuckDBPyConnection) -> Generator[TestClient]:
     """FastAPI TestClient with get_db overridden to use the seeded in-memory DB."""
 
-    def _override() -> Generator[duckdb.DuckDBPyConnection, None, None]:
+    def _override() -> Generator[duckdb.DuckDBPyConnection]:
         yield db_conn
 
     app.dependency_overrides[get_db] = _override
