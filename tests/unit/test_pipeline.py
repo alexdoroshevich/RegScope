@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import polars as pl
 import pytest
 
-from scripts.pipeline import _dedup, _parse_args, main
+from scripts.pipeline import _dedup, _parse_args, _process, main
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -39,8 +39,9 @@ class TestParseArgs:
 class TestDedup:
     def test_dedup_writes_parquet(self, tmp_path: Path) -> None:
         data_dir = tmp_path / "raw"
-        pq_dir = data_dir / "comments" / "docket_id=DOC-1"
-        pq_dir.mkdir(parents=True)
+        # _dedup reads from the processed path written by _process
+        processed_dir = data_dir / "processed" / "DOC-1"
+        processed_dir.mkdir(parents=True)
         df = pl.DataFrame(
             {
                 "comment_id": ["C-1", "C-2", "C-3"],
@@ -51,7 +52,7 @@ class TestDedup:
                 "fetched_at": [None] * 3,
             }
         )
-        df.write_parquet(pq_dir / "part-00000.parquet")
+        df.write_parquet(processed_dir / "comments.parquet")
 
         out = _dedup(data_dir, "DOC-1")
         assert out.exists()
@@ -65,8 +66,10 @@ class TestMainIntegration:
     @patch("scripts.pipeline._cluster")
     @patch("scripts.pipeline._embed")
     @patch("scripts.pipeline._dedup")
+    @patch("scripts.pipeline._process")
     def test_skip_ingest_skip_label(
         self,
+        mock_process: MagicMock,
         mock_dedup: MagicMock,
         mock_embed: MagicMock,
         mock_cluster: MagicMock,
@@ -94,6 +97,7 @@ class TestMainIntegration:
 
         main(["DOC-1", "--skip-ingest", "--skip-label"])
 
+        mock_process.assert_called_once()
         mock_dedup.assert_called_once()
         mock_embed.assert_called_once()
         mock_cluster.assert_called_once()

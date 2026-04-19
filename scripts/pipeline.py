@@ -49,13 +49,24 @@ def _ingest(docket_id: str, data_dir: Path, api_key: str) -> Path:
     return out
 
 
+def _process(data_dir: Path, docket_id: str) -> Path:
+    """Clean and validate raw comments, writing processed Parquet."""
+    from data.process.clean import process_docket
+
+    raw = data_dir / "comments" / f"docket_id={docket_id}" / "part-00000.parquet"
+    out = data_dir / "processed" / docket_id / "comments.parquet"
+    process_docket(raw, out)
+    logger.info("process: cleaned comments → %s", out)
+    return out
+
+
 def _dedup(data_dir: Path, docket_id: str) -> Path:
-    """Run MinHash/LSH dedup on ingested comments."""
+    """Run MinHash/LSH dedup on processed comments."""
     import polars as pl
 
     from nlp.dedup import find_duplicate_groups, groups_to_dataframe
 
-    pq = data_dir / "comments" / f"docket_id={docket_id}" / "part-00000.parquet"
+    pq = data_dir / "processed" / docket_id / "comments.parquet"
     comments = pl.read_parquet(pq)
     groups = find_duplicate_groups(comments)
     df = groups_to_dataframe(groups)
@@ -73,7 +84,7 @@ def _embed(data_dir: Path, docket_id: str) -> Path:
 
     from nlp.embed import embed_comments
 
-    pq = data_dir / "comments" / f"docket_id={docket_id}" / "part-00000.parquet"
+    pq = data_dir / "processed" / docket_id / "comments.parquet"
     comments = pl.read_parquet(pq).select("comment_id", "comment_text")
     embeddings_df = embed_comments(comments)
 
@@ -168,7 +179,7 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
 
     conn = connect(db_path)
     try:
-        comment_pq = str(data_dir / "comments" / f"docket_id={docket_id}" / "*.parquet")
+        comment_pq = str(data_dir / "processed" / docket_id / "comments.parquet")
         load_comments_parquet(conn, comment_pq)
 
         groups_pq = data_dir / "processed" / docket_id / "duplicate_groups.parquet"
@@ -252,6 +263,7 @@ def main(argv: list[str] | None = None) -> None:
             sys.exit(1)
         logger.info("skipping ingest, using existing Parquet")
 
+    _process(data_dir, docket_id)
     _dedup(data_dir, docket_id)
     _embed(data_dir, docket_id)
     _cluster(data_dir, docket_id, args.min_cluster_size)
