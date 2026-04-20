@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { getClusterComments, getClustersByDocket } from "../api/client";
+import { DocketSearch } from "../components/DocketSearch";
 import { SummaryCard } from "../components/SummaryCard";
 import type { ClusterComment, ClusterSummary } from "../types/api";
 
@@ -78,12 +79,11 @@ export function ClustersPage() {
           void search();
         }}
       >
-        <input
-          type="text"
+        <DocketSearch
           value={docketId}
-          onChange={(e) => setDocketId(e.target.value)}
+          onChange={setDocketId}
           placeholder="Enter docket ID (e.g. EPA-HQ-OAR-2021-0317)"
-          className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1"
         />
         <button
           type="submit"

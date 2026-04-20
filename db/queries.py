@@ -231,6 +231,57 @@ def get_astroturf_summary(
     }
 
 
+def list_dockets(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    q: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[dict[str, object]]:
+    """List dockets ordered by comment count, optionally filtered by case-insensitive substring."""
+    if q:
+        result = conn.execute(
+            """
+            SELECT docket_id, COUNT(*) AS comment_count
+            FROM comments
+            WHERE docket_id ILIKE ?
+            GROUP BY docket_id
+            ORDER BY comment_count DESC
+            LIMIT ? OFFSET ?
+            """,
+            [f"%{q}%", limit, offset],
+        )
+    else:
+        result = conn.execute(
+            """
+            SELECT docket_id, COUNT(*) AS comment_count
+            FROM comments
+            GROUP BY docket_id
+            ORDER BY comment_count DESC
+            LIMIT ? OFFSET ?
+            """,
+            [limit, offset],
+        )
+    columns = [desc[0] for desc in result.description]
+    return [dict(zip(columns, row, strict=True)) for row in result.fetchall()]
+
+
+def count_dockets(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    q: str | None = None,
+) -> int:
+    """Count distinct dockets, optionally filtered by case-insensitive substring."""
+    if q:
+        row = conn.execute(
+            "SELECT COUNT(DISTINCT docket_id) FROM comments WHERE docket_id ILIKE ?",
+            [f"%{q}%"],
+        ).fetchone()
+    else:
+        row = conn.execute("SELECT COUNT(DISTINCT docket_id) FROM comments").fetchone()
+    return int(row[0]) if row else 0
+
+
 def get_citation_graph(
     conn: duckdb.DuckDBPyConnection,
     docket_id: str,

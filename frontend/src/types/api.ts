@@ -54,6 +54,18 @@ export interface GraphResponse {
   links: GraphLink[];
 }
 
+export interface DocketSummary {
+  docket_id: string;
+  comment_count: number;
+}
+
+export interface DocketListResponse {
+  items: DocketSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface SourceComment {
   comment_id: string;
   docket_id: string;
