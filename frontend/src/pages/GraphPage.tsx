@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ForceGraph2D } from "react-force-graph";
 import { getCitationGraph } from "../api/client";
 import { DocketSearch } from "../components/DocketSearch";
@@ -24,7 +25,8 @@ const NODE_COLOR: Record<string, string> = {
 };
 
 export function GraphPage() {
-  const [docketId, setDocketId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [docketId, setDocketId] = useState(() => searchParams.get("docket") ?? "");
   const [graph, setGraph] = useState<GraphResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

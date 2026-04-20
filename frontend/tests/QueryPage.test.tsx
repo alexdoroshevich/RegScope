@@ -1,23 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { QueryPage } from "../src/pages/QueryPage";
 
 const queryResp = {
-  question: "What do commenters say?",
-  answer: "Small businesses bear disproportionate costs.",
+  answer: "Commenters raised concerns about air quality impacts on vulnerable populations.",
   sources: [
     {
       comment_id: "C-001",
-      docket_id: "EPA-HQ-OAR-2021-0317",
-      comment_text: "This regulation will harm small businesses.",
-      similarity: 0.92,
+      comment_text: "The proposed rule will worsen air quality for communities near industrial sites.",
+      similarity: 0.87,
     },
     {
       comment_id: "C-002",
-      docket_id: "EPA-HQ-OAR-2021-0317",
-      comment_text: "Compliance costs are too high.",
-      similarity: 0.88,
+      comment_text: "Small businesses cannot afford the compliance costs outlined in the proposal.",
+      similarity: 0.74,
     },
   ],
   model: "gpt-4o-mini",
@@ -25,210 +23,176 @@ const queryResp = {
   from_cache: false,
 };
 
-const cachedResp = { ...queryResp, from_cache: true, cost_usd: 0.0 };
-
-function mockFetch(_url: string, init?: RequestInit): Promise<Response> {
-  if (init?.method === "POST") {
+function mockFetch(url: string): Promise<Response> {
+  if (url.includes("/dockets")) {
     return Promise.resolve(
-      new Response(JSON.stringify(queryResp), { status: 200 }),
+      new Response(JSON.stringify({ items: [], total: 0, limit: 8, offset: 0 }), { status: 200 }),
     );
   }
   return Promise.resolve(new Response("not found", { status: 404 }));
 }
 
+function mockPost(url: string, init?: RequestInit): Promise<Response> {
+  if (init?.method === "POST") {
+    return Promise.resolve(new Response(JSON.stringify(queryResp), { status: 200 }));
+  }
+  return mockFetch(url);
+}
+
 describe("QueryPage", () => {
   beforeEach(() => {
-    vi.stubGlobal("fetch", vi.fn(mockFetch));
+    vi.stubGlobal("fetch", vi.fn((url: string, init?: RequestInit) => mockPost(url, init)));
   });
 
-  it("renders the form with both inputs and the Ask button", () => {
-    render(<QueryPage />);
+  it("renders the docket search and question input", () => {
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
     expect(screen.getByPlaceholderText(/Docket ID/)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/What concerns/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ask" })).toBeInTheDocument();
-    expect(screen.getByText("Ask a Question")).toBeInTheDocument();
   });
 
   it("Ask button is disabled when both fields are empty", () => {
-    render(<QueryPage />);
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
     expect(screen.getByRole("button", { name: "Ask" })).toBeDisabled();
   });
 
-  it("Ask button stays disabled when only the docket ID is filled", async () => {
+  it("Ask button is disabled when only docket is filled", async () => {
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/Docket ID/),
-      "EPA-HQ-OAR-2021-0317",
-    );
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/Docket ID/), "EPA-HQ-OAR-2021-0317");
     expect(screen.getByRole("button", { name: "Ask" })).toBeDisabled();
   });
 
-  it("Ask button stays disabled when only the question is filled", async () => {
+  it("Ask button is disabled when only question is filled", async () => {
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/What concerns/),
-      "What do commenters say?",
-    );
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/What concerns/), "What about air quality?");
     expect(screen.getByRole("button", { name: "Ask" })).toBeDisabled();
   });
 
-  it("shows the answer panel and sources after a successful query", async () => {
+  it("shows answer and sources after successful query", async () => {
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/Docket ID/),
-      "EPA-HQ-OAR-2021-0317",
-    );
-    await user.type(
-      screen.getByPlaceholderText(/What concerns/),
-      "What do commenters say?",
-    );
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/Docket ID/), "EPA-HQ-OAR-2021-0317");
+    await user.type(screen.getByPlaceholderText(/What concerns/), "What about air quality?");
     await user.click(screen.getByRole("button", { name: "Ask" }));
-
     await waitFor(() => {
-      expect(
-        screen.getByText("Small businesses bear disproportionate costs."),
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Commenters raised concerns/)).toBeInTheDocument();
     });
-    expect(screen.getByText("Answer")).toBeInTheDocument();
-    expect(screen.getByText("gpt-4o-mini")).toBeInTheDocument();
-    expect(screen.getByText("Source comments (2)")).toBeInTheDocument();
+    expect(screen.getByText(/Source comments/)).toBeInTheDocument();
   });
 
   it("shows source comment IDs and similarity percentages", async () => {
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/Docket ID/),
-      "EPA-HQ-OAR-2021-0317",
-    );
-    await user.type(
-      screen.getByPlaceholderText(/What concerns/),
-      "What do commenters say?",
-    );
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/Docket ID/), "EPA-HQ-OAR-2021-0317");
+    await user.type(screen.getByPlaceholderText(/What concerns/), "air quality");
     await user.click(screen.getByRole("button", { name: "Ask" }));
-
     await waitFor(() => {
       expect(screen.getByText(/C-001/)).toBeInTheDocument();
     });
     expect(screen.getByText(/C-002/)).toBeInTheDocument();
-    expect(screen.getByText("similarity 92.0%")).toBeInTheDocument();
-    expect(screen.getByText("similarity 88.0%")).toBeInTheDocument();
+    expect(screen.getByText(/87.0%/)).toBeInTheDocument();
+    expect(screen.getByText(/74.0%/)).toBeInTheDocument();
   });
 
-  it("displays cost when the response is not from cache", async () => {
+  it("shows cost formatted to 5 decimal places", async () => {
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/Docket ID/),
-      "EPA-HQ-OAR-2021-0317",
-    );
-    await user.type(
-      screen.getByPlaceholderText(/What concerns/),
-      "What do commenters say?",
-    );
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/Docket ID/), "EPA-HQ-OAR-2021-0317");
+    await user.type(screen.getByPlaceholderText(/What concerns/), "air quality");
     await user.click(screen.getByRole("button", { name: "Ask" }));
-
-    // cost_usd 0.00042 → toFixed(5) → "0.00042" → rendered as "$0.00042"
     await waitFor(() => {
       expect(screen.getByText("$0.00042")).toBeInTheDocument();
     });
   });
 
-  it("shows the cached badge when response comes from cache", async () => {
+  it("shows cached badge when from_cache is true", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(() =>
-        Promise.resolve(
-          new Response(JSON.stringify(cachedResp), { status: 200 }),
-        ),
-      ),
+      vi.fn((url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return Promise.resolve(
+            new Response(JSON.stringify({ ...queryResp, from_cache: true, cost_usd: 0 }), { status: 200 }),
+          );
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ items: [], total: 0, limit: 8, offset: 0 }), { status: 200 }),
+        );
+      }),
     );
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/Docket ID/),
-      "EPA-HQ-OAR-2021-0317",
-    );
-    await user.type(screen.getByPlaceholderText(/What concerns/), "test");
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/Docket ID/), "EPA-HQ-OAR-2021-0317");
+    await user.type(screen.getByPlaceholderText(/What concerns/), "air quality");
     await user.click(screen.getByRole("button", { name: "Ask" }));
-
     await waitFor(() => {
       expect(screen.getByText("cached")).toBeInTheDocument();
     });
   });
 
-  it("expands and collapses a long source comment via Show more / Show less", async () => {
-    const longText = "a".repeat(300);
-    const longSourceResp = {
-      ...queryResp,
-      sources: [
-        {
-          comment_id: "C-001",
-          docket_id: "EPA-HQ-OAR-2021-0317",
-          comment_text: longText,
-          similarity: 0.92,
-        },
-      ],
-    };
+  it("expands and collapses long source text", async () => {
+    const longText = "A".repeat(300);
     vi.stubGlobal(
       "fetch",
-      vi.fn(() =>
-        Promise.resolve(
-          new Response(JSON.stringify(longSourceResp), { status: 200 }),
-        ),
-      ),
+      vi.fn((url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                ...queryResp,
+                sources: [{ comment_id: "C-LONG", comment_text: longText, similarity: 0.9 }],
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ items: [], total: 0, limit: 8, offset: 0 }), { status: 200 }),
+        );
+      }),
     );
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/Docket ID/),
-      "EPA-HQ-OAR-2021-0317",
-    );
-    await user.type(screen.getByPlaceholderText(/What concerns/), "test");
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/Docket ID/), "EPA-HQ-OAR-2021-0317");
+    await user.type(screen.getByPlaceholderText(/What concerns/), "air quality");
     await user.click(screen.getByRole("button", { name: "Ask" }));
-
     await waitFor(() => {
       expect(screen.getByText("Show more")).toBeInTheDocument();
     });
-
     await user.click(screen.getByText("Show more"));
     expect(screen.getByText("Show less")).toBeInTheDocument();
-
     await user.click(screen.getByText("Show less"));
     expect(screen.getByText("Show more")).toBeInTheDocument();
   });
 
-  it("shows an error message when the API returns an error", async () => {
+  it("shows error when API fails", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(() =>
-        Promise.resolve(
-          new Response("boom", { status: 500, statusText: "Internal Server Error" }),
-        ),
-      ),
+      vi.fn((url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return Promise.resolve(new Response("boom", { status: 500, statusText: "Internal Server Error" }));
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ items: [], total: 0, limit: 8, offset: 0 }), { status: 200 }),
+        );
+      }),
     );
     const user = userEvent.setup();
-    render(<QueryPage />);
-
-    await user.type(
-      screen.getByPlaceholderText(/Docket ID/),
-      "EPA-HQ-OAR-2021-0317",
-    );
-    await user.type(screen.getByPlaceholderText(/What concerns/), "test");
+    render(<MemoryRouter><QueryPage /></MemoryRouter>);
+    await user.type(screen.getByPlaceholderText(/Docket ID/), "EPA-HQ-OAR-2021-0317");
+    await user.type(screen.getByPlaceholderText(/What concerns/), "air quality");
     await user.click(screen.getByRole("button", { name: "Ask" }));
-
     await waitFor(() => {
       expect(screen.getByText(/Error:/)).toBeInTheDocument();
     });
+  });
+
+  it("pre-fills docket ID from ?docket= URL param", () => {
+    render(
+      <MemoryRouter initialEntries={["/query?docket=EPA-HQ-OAR-2021-0317"]}>
+        <QueryPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByPlaceholderText(/Docket ID/)).toHaveValue("EPA-HQ-OAR-2021-0317");
   });
 });

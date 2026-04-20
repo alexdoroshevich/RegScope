@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -15,7 +16,8 @@ import { SummaryCard } from "../components/SummaryCard";
 import type { ClusterComment, ClusterSummary } from "../types/api";
 
 export function ClustersPage() {
-  const [docketId, setDocketId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [docketId, setDocketId] = useState(() => searchParams.get("docket") ?? "");
   const [clusters, setClusters] = useState<ClusterSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

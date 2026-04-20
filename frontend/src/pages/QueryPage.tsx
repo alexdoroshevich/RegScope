@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { postQuery } from "../api/client";
 import { DocketSearch } from "../components/DocketSearch";
 import type { QueryResponse, SourceComment } from "../types/api";
@@ -35,7 +36,8 @@ function SourceCard({ src, index }: { src: SourceComment; index: number }) {
 }
 
 export function QueryPage() {
-  const [docketId, setDocketId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [docketId, setDocketId] = useState(() => searchParams.get("docket") ?? "");
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<QueryResponse | null>(null);
   const [loading, setLoading] = useState(false);

@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { AstroturfPage } from "./pages/AstroturfPage";
 import { ClustersPage } from "./pages/ClustersPage";
+import { DocketsPage } from "./pages/DocketsPage";
 import { GraphPage } from "./pages/GraphPage";
 import { HomePage } from "./pages/HomePage";
 import { QueryPage } from "./pages/QueryPage";
@@ -12,6 +13,9 @@ export default function App() {
         <nav className="px-6 py-3 flex gap-4">
           <Link to="/" className="font-semibold">
             RegScope
+          </Link>
+          <Link to="/dockets" className="text-slate-600 hover:text-slate-900">
+            Dockets
           </Link>
           <Link to="/astroturf" className="text-slate-600 hover:text-slate-900">
             Astroturf
@@ -30,6 +34,7 @@ export default function App() {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/dockets" element={<DocketsPage />} />
           <Route path="/astroturf" element={<AstroturfPage />} />
           <Route path="/clusters" element={<ClustersPage />} />
           <Route path="/graph" element={<GraphPage />} />
