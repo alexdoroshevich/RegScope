@@ -18,6 +18,9 @@
     "react-router-dom": "^6.28.0",
     "recharts": "^3.8.1"
   },
+  "overrides": {
+    "got": "^11.8.5"
+  },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

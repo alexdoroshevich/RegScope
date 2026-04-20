@@ -67,6 +67,17 @@ def _seed(conn: duckdb.DuckDBPyConnection) -> None:
         """,
         [_DOCKET, _DOCKET, _DOCKET],
     )
+    # Seed unit-norm embeddings so RAG similarity search returns real results.
+    import numpy as np
+
+    rng = np.random.default_rng(42)
+    for cid in ("C-001", "C-002", "C-003"):
+        vec = rng.standard_normal(384).astype(np.float32)
+        vec /= np.linalg.norm(vec)
+        conn.execute(
+            "UPDATE comments SET embedding = ? WHERE comment_id = ?",
+            [vec.tolist(), cid],
+        )
 
 
 @pytest.fixture()

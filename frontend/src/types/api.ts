@@ -53,3 +53,19 @@ export interface GraphResponse {
   nodes: GraphNode[];
   links: GraphLink[];
 }
+
+export interface SourceComment {
+  comment_id: string;
+  docket_id: string;
+  comment_text: string;
+  similarity: number;
+}
+
+export interface QueryResponse {
+  question: string;
+  answer: string;
+  sources: SourceComment[];
+  model: string;
+  cost_usd: number;
+  from_cache: boolean;
+}

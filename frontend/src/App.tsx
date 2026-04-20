@@ -3,6 +3,7 @@ import { AstroturfPage } from "./pages/AstroturfPage";
 import { ClustersPage } from "./pages/ClustersPage";
 import { GraphPage } from "./pages/GraphPage";
 import { HomePage } from "./pages/HomePage";
+import { QueryPage } from "./pages/QueryPage";
 
 export default function App() {
   return (
@@ -21,6 +22,9 @@ export default function App() {
           <Link to="/graph" className="text-slate-600 hover:text-slate-900">
             Citation Graph
           </Link>
+          <Link to="/query" className="text-slate-600 hover:text-slate-900">
+            Ask a Question
+          </Link>
         </nav>
       </header>
       <main>
@@ -29,6 +33,7 @@ export default function App() {
           <Route path="/astroturf" element={<AstroturfPage />} />
           <Route path="/clusters" element={<ClustersPage />} />
           <Route path="/graph" element={<GraphPage />} />
+          <Route path="/query" element={<QueryPage />} />
         </Routes>
       </main>
     </div>
