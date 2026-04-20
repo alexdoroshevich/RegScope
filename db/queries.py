@@ -178,6 +178,30 @@ def get_cluster_comments(
     return [dict(zip(columns, row, strict=True)) for row in result.fetchall()]
 
 
+def get_comments_by_group(
+    conn: duckdb.DuckDBPyConnection,
+    group_id: int,
+    *,
+    limit: int = 50,
+) -> list[dict[str, object]]:
+    """Fetch comments belonging to a duplicate group via its stored comment_ids array."""
+    result = conn.execute(
+        """
+        SELECT c.comment_id, c.comment_text, c.submitter_name
+        FROM comments c
+        WHERE c.comment_id IN (
+            SELECT UNNEST(comment_ids)
+            FROM duplicate_groups
+            WHERE group_id = ?
+        )
+        LIMIT ?
+        """,
+        [group_id, limit],
+    )
+    columns = [desc[0] for desc in result.description]
+    return [dict(zip(columns, row, strict=True)) for row in result.fetchall()]
+
+
 def get_astroturf_summary(
     conn: duckdb.DuckDBPyConnection,
 ) -> dict[str, object]:

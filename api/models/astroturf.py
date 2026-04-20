@@ -26,6 +26,14 @@ class DuplicateGroupListResponse(BaseModel):
     offset: int
 
 
+class GroupCommentOut(BaseModel):
+    """A single comment that belongs to a duplicate/astroturf group."""
+
+    comment_id: str
+    comment_text: str | None = None
+    submitter_name: str | None = None
+
+
 class AstroturfSummaryResponse(BaseModel):
     """Summary statistics for astroturf detection."""
 

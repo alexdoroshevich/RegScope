@@ -42,6 +42,15 @@ export function getClustersByDocket(
   );
 }
 
+export function getGroupComments(
+  groupId: number,
+  limit = 50,
+): Promise<ClusterComment[]> {
+  return fetchJson<ClusterComment[]>(
+    `/astroturf/groups/${groupId}/comments?limit=${limit}`,
+  );
+}
+
 export function getClusterComments(
   docketId: string,
   clusterId: number,

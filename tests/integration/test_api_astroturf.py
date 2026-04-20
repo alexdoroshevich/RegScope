@@ -76,3 +76,38 @@ class TestAstroturfGroups:
             "is_astroturf",
         ):
             assert key in item
+
+    def test_groups_total_field(self, api_client: TestClient) -> None:
+        body = api_client.get("/api/v1/astroturf/groups").json()
+        assert body["total"] == 2
+
+
+@pytest.mark.integration
+class TestGroupComments:
+    def test_returns_200(self, api_client: TestClient) -> None:
+        r = api_client.get("/api/v1/astroturf/groups/1/comments")
+        assert r.status_code == 200
+
+    def test_returns_correct_comments(self, api_client: TestClient) -> None:
+        data = api_client.get("/api/v1/astroturf/groups/1/comments").json()
+        ids = {c["comment_id"] for c in data}
+        assert ids == {"C-001", "C-002"}
+
+    def test_single_comment_group(self, api_client: TestClient) -> None:
+        data = api_client.get("/api/v1/astroturf/groups/2/comments").json()
+        assert len(data) == 1
+        assert data[0]["comment_id"] == "C-003"
+
+    def test_comment_schema(self, api_client: TestClient) -> None:
+        item = api_client.get("/api/v1/astroturf/groups/1/comments").json()[0]
+        assert "comment_id" in item
+        assert "comment_text" in item
+        assert "submitter_name" in item
+
+    def test_limit_param(self, api_client: TestClient) -> None:
+        data = api_client.get("/api/v1/astroturf/groups/1/comments?limit=1").json()
+        assert len(data) == 1
+
+    def test_unknown_group_returns_404(self, api_client: TestClient) -> None:
+        r = api_client.get("/api/v1/astroturf/groups/999/comments")
+        assert r.status_code == 404
