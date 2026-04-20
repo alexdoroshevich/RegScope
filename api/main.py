@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from api.config import get_settings
 from api.logging_setup import configure_logging
-from api.routes import astroturf, clusters, comments
+from api.routes import astroturf, clusters, comments, health
 
 _FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
         version="0.1.0",
     )
 
+    application.include_router(health.router)
     application.include_router(comments.router, prefix="/api/v1")
     application.include_router(clusters.router, prefix="/api/v1")
     application.include_router(astroturf.router, prefix="/api/v1")
