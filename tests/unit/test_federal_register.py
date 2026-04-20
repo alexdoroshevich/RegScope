@@ -12,7 +12,6 @@ import polars as pl
 import pytest
 
 from data.ingest.federal_register import (
-    BASE_URL,
     DOCUMENT_COLUMNS,
     FederalRegisterClient,
     FederalRegisterError,

@@ -16,6 +16,7 @@ CLI usage::
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 import random
@@ -314,10 +315,8 @@ def write_documents_parquet(
     for doc in documents:
         year = 0
         if doc.publication_date:
-            try:
+            with contextlib.suppress(ValueError):
                 year = int(doc.publication_date[:4])
-            except ValueError:
-                pass
         by_year.setdefault(year, []).append(doc)
 
     written: dict[int, Path] = {}
