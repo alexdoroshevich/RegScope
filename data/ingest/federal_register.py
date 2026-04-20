@@ -40,9 +40,9 @@ import httpx
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.federalregister.gov/api/v1"
-DEFAULT_PAGE_SIZE = 1000          # FR API maximum per_page
+DEFAULT_PAGE_SIZE = 1000  # FR API maximum per_page
 DEFAULT_TIMEOUT_S = 30.0
-DEFAULT_MIN_INTERVAL_S = 1.0      # ~1 req/sec; Federal Register guidance
+DEFAULT_MIN_INTERVAL_S = 1.0  # ~1 req/sec; Federal Register guidance
 MAX_RETRIES = 3
 RETRYABLE_STATUSES = frozenset({429, 500, 502, 503, 504})
 
@@ -64,11 +64,11 @@ _FIELDS = (
 
 DOCUMENT_COLUMNS: dict[str, pl.DataType] = {
     "document_number": pl.String(),
-    "docket_id": pl.String(),           # first entry of docket_ids, or null
+    "docket_id": pl.String(),  # first entry of docket_ids, or null
     "title": pl.String(),
-    "doc_type": pl.String(),            # RULE | PRORULE | NOTICE | …
+    "doc_type": pl.String(),  # RULE | PRORULE | NOTICE | …
     "abstract": pl.String(),
-    "agency_names": pl.String(),        # JSON-encoded list
+    "agency_names": pl.String(),  # JSON-encoded list
     "publication_date": pl.String(),
     "effective_on": pl.String(),
     "comments_close_on": pl.String(),
@@ -99,7 +99,7 @@ class NormalizedDocument:
     title: str
     doc_type: str
     abstract: str | None
-    agency_names: str           # JSON list, e.g. '["EPA", "OSHA"]'
+    agency_names: str  # JSON list, e.g. '["EPA", "OSHA"]'
     publication_date: str | None
     effective_on: str | None
     comments_close_on: str | None
@@ -383,9 +383,7 @@ async def _run(
         return
 
     written = write_documents_parquet(docs, data_dir=effective_data_dir)
-    total = sum(
-        pl.read_parquet(p).height for p in written.values()
-    )
+    total = sum(pl.read_parquet(p).height for p in written.values())
     logger.info(
         "federal-register: %d documents written across %d year partition(s)",
         total,
@@ -401,9 +399,7 @@ def _main() -> None:
 
     configure_logging()
 
-    parser = argparse.ArgumentParser(
-        description="Ingest Federal Register documents to Parquet."
-    )
+    parser = argparse.ArgumentParser(description="Ingest Federal Register documents to Parquet.")
     parser.add_argument(
         "--since",
         required=True,

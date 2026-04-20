@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 # Fixtures / helpers
 # ---------------------------------------------------------------------------
 
+
 def _page(
     docs: list[dict[str, Any]],
     total_pages: int = 1,
@@ -66,6 +67,7 @@ def _doc(
 # NormalizedDocument / _normalize
 # ---------------------------------------------------------------------------
 
+
 def test_normalized_document_fields() -> None:
     """All dataclass fields match the Parquet schema columns."""
     doc = NormalizedDocument(
@@ -89,6 +91,7 @@ def test_normalized_document_fields() -> None:
 # ---------------------------------------------------------------------------
 # FederalRegisterClient.iter_documents
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_iter_documents_single_page(httpx_mock: HTTPXMock) -> None:
@@ -169,6 +172,7 @@ async def test_agency_names_stored_as_json(httpx_mock: HTTPXMock) -> None:
 # Retry / error handling
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_retries_on_429_then_succeeds(httpx_mock: HTTPXMock) -> None:
     httpx_mock.add_response(status_code=429, json={"error": "rate limited"})
@@ -215,6 +219,7 @@ async def test_retries_on_network_error(httpx_mock: HTTPXMock) -> None:
 # ---------------------------------------------------------------------------
 # write_documents_parquet
 # ---------------------------------------------------------------------------
+
 
 def _make_doc(num: int, year: int = 2024) -> NormalizedDocument:
     return NormalizedDocument(
@@ -290,6 +295,7 @@ def test_write_documents_doc_with_no_date_goes_to_year_zero(
 # ---------------------------------------------------------------------------
 # validate_documents
 # ---------------------------------------------------------------------------
+
 
 def test_validate_documents_raises_on_duplicate_document_number() -> None:
     from data.validation import SchemaValidationError
