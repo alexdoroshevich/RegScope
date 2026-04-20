@@ -191,6 +191,7 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
         load_cluster_assignments,
         load_comments_parquet,
         load_duplicate_groups,
+        load_embeddings,
     )
     from db.queries import upsert_cluster_label
 
@@ -202,6 +203,10 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
         groups_pq = data_dir / "processed" / docket_id / "duplicate_groups.parquet"
         if groups_pq.exists():
             load_duplicate_groups(conn, str(groups_pq))
+
+        emb_pq = data_dir / "processed" / docket_id / "embeddings.parquet"
+        if emb_pq.exists():
+            load_embeddings(conn, str(emb_pq))
 
         clusters_pq = data_dir / "processed" / docket_id / "clusters.parquet"
         if clusters_pq.exists():

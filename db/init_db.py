@@ -113,6 +113,32 @@ def load_cluster_assignments(
     return count
 
 
+def load_embeddings(
+    conn: duckdb.DuckDBPyConnection,
+    embeddings_parquet: str,
+) -> int:
+    """Update the embedding column in comments from a Parquet file.
+
+    Expects columns: ``comment_id``, ``embedding`` (list[f32]).
+    Uses a temporary table to perform the bulk UPDATE efficiently.
+    """
+    count_row = conn.execute(
+        "SELECT COUNT(*) FROM read_parquet(?)", [embeddings_parquet]
+    ).fetchone()
+    count = int(count_row[0]) if count_row else 0
+    conn.execute(
+        """
+        UPDATE comments
+        SET embedding = src.embedding
+        FROM read_parquet(?) AS src
+        WHERE comments.comment_id = src.comment_id
+        """,
+        [embeddings_parquet],
+    )
+    logger.info("loaded %d embeddings from %s", count, embeddings_parquet)
+    return count
+
+
 def load_citations(
     conn: duckdb.DuckDBPyConnection,
     citations_parquet: str,
