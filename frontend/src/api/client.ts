@@ -2,6 +2,7 @@ import type {
   AstroturfSummary,
   ClusterComment,
   ClusterSummary,
+  DocketListResponse,
   DuplicateGroupListResponse,
   GraphResponse,
   QueryResponse,
@@ -27,6 +28,12 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
     throw new Error(`API error ${response.status}: ${response.statusText}`);
   }
   return (await response.json()) as T;
+}
+
+export function getDockets(q?: string, limit = 8): Promise<DocketListResponse> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (q) params.set("q", q);
+  return fetchJson<DocketListResponse>(`/dockets?${params.toString()}`);
 }
 
 export function getAstroturfSummary(): Promise<AstroturfSummary> {

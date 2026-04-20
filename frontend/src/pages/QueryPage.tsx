@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { postQuery } from "../api/client";
+import { DocketSearch } from "../components/DocketSearch";
 import type { QueryResponse, SourceComment } from "../types/api";
 
 function SourceCard({ src, index }: { src: SourceComment; index: number }) {
@@ -70,12 +71,11 @@ export function QueryPage() {
           void submit();
         }}
       >
-        <input
-          type="text"
+        <DocketSearch
           value={docketId}
-          onChange={(e) => setDocketId(e.target.value)}
+          onChange={setDocketId}
           placeholder="Docket ID (e.g. EPA-HQ-OAR-2021-0317)"
-          className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full"
         />
         <div className="flex gap-3">
           <input

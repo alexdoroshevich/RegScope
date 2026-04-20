@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { ForceGraph2D } from "react-force-graph";
 import { getCitationGraph } from "../api/client";
+import { DocketSearch } from "../components/DocketSearch";
 import type { GraphResponse } from "../types/api";
 
 // Node/link shapes expected by ForceGraph2D at runtime (id, source, target are required).
@@ -61,12 +62,11 @@ export function GraphPage() {
           void search();
         }}
       >
-        <input
-          type="text"
+        <DocketSearch
           value={docketId}
-          onChange={(e) => setDocketId(e.target.value)}
+          onChange={setDocketId}
           placeholder="Enter docket ID (e.g. DEMO-2024-0001)"
-          className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1"
         />
         <button
           type="submit"
