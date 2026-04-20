@@ -10,15 +10,18 @@ import pytest
 if TYPE_CHECKING:
     import duckdb
 
-from db.init_db import connect, init_schema, load_comments_parquet
+from db.init_db import connect, init_schema, load_comments_parquet, load_documents
 from db.queries import (
     count_comments_by_docket,
+    count_documents,
     get_astroturf_summary,
     get_cluster_comments,
     get_cluster_labels,
     get_clusters_by_docket,
     get_comments_by_docket,
+    get_document,
     get_duplicate_groups,
+    list_documents,
     upsert_cluster_label,
 )
 
@@ -84,8 +87,8 @@ class TestSchema:
         init_schema(db)
         tables = db.execute("SHOW TABLES").fetchall()
         assert (
-            len(tables) == 5
-        )  # comments, duplicate_groups, comment_clusters, cluster_labels, citations
+            len(tables) == 6
+        )  # comments, duplicate_groups, comment_clusters, cluster_labels, citations, documents
 
 
 class TestLoadCommentsParquet:
@@ -210,3 +213,166 @@ class TestQueries:
     def test_get_cluster_labels_empty(self, seeded_db: duckdb.DuckDBPyConnection) -> None:
         labels = get_cluster_labels(seeded_db, "DOC-999")
         assert labels == []
+
+
+# ---------------------------------------------------------------------------
+# Helper: minimal document row dict
+# ---------------------------------------------------------------------------
+
+
+def _doc_row(
+    *,
+    num: int = 1,
+    docket_id: str | None = "EPA-HQ-OAR-2024-0001",
+    doc_type: str = "RULE",
+) -> dict[str, object]:
+    from datetime import UTC, datetime
+
+    return {
+        "document_number": f"2024-{num:05d}",
+        "docket_id": docket_id,
+        "title": f"Test Rule {num}",
+        "doc_type": doc_type,
+        "abstract": None,
+        "agency_names": '["EPA"]',
+        "publication_date": f"2024-03-{num:02d}",
+        "effective_on": None,
+        "comments_close_on": None,
+        "html_url": None,
+        "citation": None,
+        "significant": False,
+        "fetched_at": datetime(2024, 6, 1, tzinfo=UTC),
+    }
+
+
+class TestLoadDocuments:
+    def test_load_from_parquet(self, db: duckdb.DuckDBPyConnection, tmp_path: object) -> None:
+        from pathlib import Path
+
+        import polars as pl
+
+        from data.ingest.federal_register import DOCUMENT_COLUMNS
+
+        tmp = Path(str(tmp_path))
+        df = pl.DataFrame([_doc_row(num=1), _doc_row(num=2)], schema=DOCUMENT_COLUMNS)
+        pq_path = tmp / "docs.parquet"
+        df.write_parquet(pq_path)
+
+        count = load_documents(db, str(pq_path))
+        assert count == 2
+        rows = db.execute("SELECT COUNT(*) FROM documents").fetchone()
+        assert rows[0] == 2  # type: ignore[index]
+
+    def test_load_is_idempotent(self, db: duckdb.DuckDBPyConnection, tmp_path: object) -> None:
+        """Loading the same Parquet twice should not duplicate rows."""
+        from pathlib import Path
+
+        import polars as pl
+
+        from data.ingest.federal_register import DOCUMENT_COLUMNS
+
+        tmp = Path(str(tmp_path))
+        df = pl.DataFrame([_doc_row(num=1)], schema=DOCUMENT_COLUMNS)
+        pq_path = tmp / "docs.parquet"
+        df.write_parquet(pq_path)
+
+        load_documents(db, str(pq_path))
+        load_documents(db, str(pq_path))
+        rows = db.execute("SELECT COUNT(*) FROM documents").fetchone()
+        assert rows[0] == 1  # type: ignore[index]
+
+    def test_load_replaces_existing(self, db: duckdb.DuckDBPyConnection, tmp_path: object) -> None:
+        """Re-loading with updated title replaces the row (INSERT OR REPLACE)."""
+        from pathlib import Path
+
+        import polars as pl
+
+        from data.ingest.federal_register import DOCUMENT_COLUMNS
+
+        tmp = Path(str(tmp_path))
+        row = _doc_row(num=1)
+        df1 = pl.DataFrame([row], schema=DOCUMENT_COLUMNS)
+        pq1 = tmp / "docs_v1.parquet"
+        df1.write_parquet(pq1)
+        load_documents(db, str(pq1))
+
+        updated = {**row, "title": "Updated Title"}
+        df2 = pl.DataFrame([updated], schema=DOCUMENT_COLUMNS)
+        pq2 = tmp / "docs_v2.parquet"
+        df2.write_parquet(pq2)
+        load_documents(db, str(pq2))
+
+        result = db.execute(
+            "SELECT title FROM documents WHERE document_number = '2024-00001'"
+        ).fetchone()
+        assert result is not None
+        assert result[0] == "Updated Title"
+
+
+class TestDocumentQueries:
+    @pytest.fixture()
+    def doc_db(self, db: duckdb.DuckDBPyConnection, tmp_path: object) -> duckdb.DuckDBPyConnection:
+        """DB pre-loaded with a handful of FR documents."""
+        from pathlib import Path
+
+        import polars as pl
+
+        from data.ingest.federal_register import DOCUMENT_COLUMNS
+
+        tmp = Path(str(tmp_path))
+        rows = [
+            _doc_row(num=1, docket_id="EPA-HQ-OAR-2024-0001", doc_type="RULE"),
+            _doc_row(num=2, docket_id="EPA-HQ-OAR-2024-0001", doc_type="PRORULE"),
+            _doc_row(num=3, docket_id="EPA-HQ-OAR-2024-0002", doc_type="RULE"),
+            _doc_row(num=4, docket_id=None, doc_type="NOTICE"),
+        ]
+        df = pl.DataFrame(rows, schema=DOCUMENT_COLUMNS)
+        pq = tmp / "docs.parquet"
+        df.write_parquet(pq)
+        load_documents(db, str(pq))
+        return db
+
+    def test_list_all_documents(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        results = list_documents(doc_db)
+        assert len(results) == 4
+
+    def test_list_documents_filter_docket(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        results = list_documents(doc_db, docket_id="EPA-HQ-OAR-2024-0001")
+        assert len(results) == 2
+        assert all(r["docket_id"] == "EPA-HQ-OAR-2024-0001" for r in results)
+
+    def test_list_documents_filter_doc_type(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        results = list_documents(doc_db, doc_type="RULE")
+        assert len(results) == 2
+        assert all(r["doc_type"] == "RULE" for r in results)
+
+    def test_list_documents_pagination(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        page1 = list_documents(doc_db, limit=2, offset=0)
+        page2 = list_documents(doc_db, limit=2, offset=2)
+        assert len(page1) == 2
+        assert len(page2) == 2
+        ids1 = {r["document_number"] for r in page1}
+        ids2 = {r["document_number"] for r in page2}
+        assert ids1.isdisjoint(ids2)
+
+    def test_count_documents_all(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        assert count_documents(doc_db) == 4
+
+    def test_count_documents_filter(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        assert count_documents(doc_db, docket_id="EPA-HQ-OAR-2024-0002") == 1
+        assert count_documents(doc_db, doc_type="NOTICE") == 1
+
+    def test_get_document_found(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        doc = get_document(doc_db, "2024-00001")
+        assert doc is not None
+        assert doc["title"] == "Test Rule 1"
+        assert doc["doc_type"] == "RULE"
+
+    def test_get_document_not_found(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        doc = get_document(doc_db, "9999-99999")
+        assert doc is None
+
+    def test_list_documents_combined_filters(self, doc_db: duckdb.DuckDBPyConnection) -> None:
+        results = list_documents(doc_db, docket_id="EPA-HQ-OAR-2024-0001", doc_type="PRORULE")
+        assert len(results) == 1
+        assert results[0]["document_number"] == "2024-00002"
