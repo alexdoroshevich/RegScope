@@ -1,9 +1,23 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 
 describe("App", () => {
+  beforeEach(() => {
+    // HomePage fetches top dockets on mount; return empty list to keep tests simple.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ items: [], total: 0, limit: 5, offset: 0 }),
+            { status: 200 },
+          ),
+        ),
+      ),
+    );
+  });
   it("renders the home page at /", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>

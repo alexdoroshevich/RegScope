@@ -30,8 +30,12 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function getDockets(q?: string, limit = 8): Promise<DocketListResponse> {
-  const params = new URLSearchParams({ limit: String(limit) });
+export function getDockets(
+  q?: string,
+  limit = 8,
+  offset = 0,
+): Promise<DocketListResponse> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (q) params.set("q", q);
   return fetchJson<DocketListResponse>(`/dockets?${params.toString()}`);
 }

@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ClustersPage } from "../src/pages/ClustersPage";
 
@@ -51,14 +52,14 @@ describe("ClustersPage", () => {
   });
 
   it("renders the search form", () => {
-    render(<ClustersPage />);
+    render(<MemoryRouter><ClustersPage /></MemoryRouter>);
     expect(screen.getByPlaceholderText(/Enter docket ID/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Search" })).toBeInTheDocument();
   });
 
   it("shows clusters after searching", async () => {
     const user = userEvent.setup();
-    render(<ClustersPage />);
+    render(<MemoryRouter><ClustersPage /></MemoryRouter>);
     await user.type(screen.getByPlaceholderText(/Enter docket ID/), "DOC-001");
     await user.click(screen.getByRole("button", { name: "Search" }));
 
@@ -72,7 +73,7 @@ describe("ClustersPage", () => {
 
   it("shows summary cards with cluster stats", async () => {
     const user = userEvent.setup();
-    render(<ClustersPage />);
+    render(<MemoryRouter><ClustersPage /></MemoryRouter>);
     await user.type(screen.getByPlaceholderText(/Enter docket ID/), "DOC-001");
     await user.click(screen.getByRole("button", { name: "Search" }));
 
@@ -86,7 +87,7 @@ describe("ClustersPage", () => {
 
   it("expands a cluster to show comments", async () => {
     const user = userEvent.setup();
-    render(<ClustersPage />);
+    render(<MemoryRouter><ClustersPage /></MemoryRouter>);
     await user.type(screen.getByPlaceholderText(/Enter docket ID/), "DOC-001");
     await user.click(screen.getByRole("button", { name: "Search" }));
 
@@ -112,7 +113,7 @@ describe("ClustersPage", () => {
       ),
     );
     const user = userEvent.setup();
-    render(<ClustersPage />);
+    render(<MemoryRouter><ClustersPage /></MemoryRouter>);
     await user.type(screen.getByPlaceholderText(/Enter docket ID/), "EMPTY");
     await user.click(screen.getByRole("button", { name: "Search" }));
 
@@ -133,12 +134,23 @@ describe("ClustersPage", () => {
       ),
     );
     const user = userEvent.setup();
-    render(<ClustersPage />);
+    render(<MemoryRouter><ClustersPage /></MemoryRouter>);
     await user.type(screen.getByPlaceholderText(/Enter docket ID/), "DOC-001");
     await user.click(screen.getByRole("button", { name: "Search" }));
 
     await waitFor(() => {
       expect(screen.getByText(/Error:/)).toBeInTheDocument();
     });
+  });
+
+  it("pre-fills docket ID from ?docket= URL param", () => {
+    render(
+      <MemoryRouter initialEntries={["/clusters?docket=EPA-HQ-OAR-2021-0317"]}>
+        <ClustersPage />
+      </MemoryRouter>,
+    );
+    expect(screen.getByPlaceholderText(/Enter docket ID/)).toHaveValue(
+      "EPA-HQ-OAR-2021-0317",
+    );
   });
 });
