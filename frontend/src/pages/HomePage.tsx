@@ -8,7 +8,7 @@ export function HomePage() {
 
   useEffect(() => {
     getDockets(undefined, 5)
-      .then(setTopDockets)
+      .then((resp) => setTopDockets(resp.items))
       .catch(() => setTopDockets([]));
   }, []);
 

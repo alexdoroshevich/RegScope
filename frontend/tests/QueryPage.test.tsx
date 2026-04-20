@@ -109,7 +109,7 @@ describe("QueryPage", () => {
   it("shows cached badge when from_cache is true", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn((url: string, init?: RequestInit) => {
+      vi.fn((_url: string, init?: RequestInit) => {
         if (init?.method === "POST") {
           return Promise.resolve(
             new Response(JSON.stringify({ ...queryResp, from_cache: true, cost_usd: 0 }), { status: 200 }),
@@ -134,7 +134,7 @@ describe("QueryPage", () => {
     const longText = "A".repeat(300);
     vi.stubGlobal(
       "fetch",
-      vi.fn((url: string, init?: RequestInit) => {
+      vi.fn((_url: string, init?: RequestInit) => {
         if (init?.method === "POST") {
           return Promise.resolve(
             new Response(
@@ -168,7 +168,7 @@ describe("QueryPage", () => {
   it("shows error when API fails", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn((url: string, init?: RequestInit) => {
+      vi.fn((_url: string, init?: RequestInit) => {
         if (init?.method === "POST") {
           return Promise.resolve(new Response("boom", { status: 500, statusText: "Internal Server Error" }));
         }
