@@ -16,5 +16,13 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: "./tests/setup.ts",
+    alias: {
+      // react-force-graph bundles three.js which can't resolve in jsdom.
+      // Replace with a lightweight stub that renders a plain div.
+      "react-force-graph": new URL(
+        "./tests/__mocks__/react-force-graph.tsx",
+        import.meta.url,
+      ).pathname,
+    },
   },
 });
