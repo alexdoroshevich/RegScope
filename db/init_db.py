@@ -97,11 +97,16 @@ def load_cluster_assignments(
     """Load cluster assignments from Parquet into the comment_clusters table."""
     count_row = conn.execute("SELECT COUNT(*) FROM read_parquet(?)", [clusters_parquet]).fetchone()
     count = int(count_row[0]) if count_row else 0
+    # comment_clusters has no PK — delete matching docket rows first for idempotency.
     conn.execute(
         """
-        INSERT OR REPLACE INTO comment_clusters
-        SELECT * FROM read_parquet(?)
+        DELETE FROM comment_clusters
+        WHERE docket_id IN (SELECT DISTINCT docket_id FROM read_parquet(?))
         """,
+        [clusters_parquet],
+    )
+    conn.execute(
+        "INSERT INTO comment_clusters SELECT * FROM read_parquet(?)",
         [clusters_parquet],
     )
     logger.info("loaded %d cluster assignments from %s", count, clusters_parquet)
