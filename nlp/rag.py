@@ -71,6 +71,11 @@ class RagAnswer:
 # ---------------------------------------------------------------------------
 
 
+def _sanitize_for_log(value: str, max_len: int = 80) -> str:
+    """Strip newline/CR characters to prevent log-injection attacks."""
+    return value[:max_len].replace("\n", "\\n").replace("\r", "\\r")
+
+
 def _hash_prompt(prompt: str, model: str) -> str:
     """SHA-256 hash of the full prompt + model name for cache keying."""
     return hashlib.sha256(f"{prompt}|{model}".encode()).hexdigest()
@@ -244,7 +249,7 @@ def answer_question(
     # 4. Check cache.
     cache: dict[str, str] = _load_cache(cache_path) if cache_path else {}
     if prompt_hash in cache:
-        logger.info("rag cache hit for question %r", question[:60])
+        logger.info("rag cache hit for question %r", _sanitize_for_log(question))
         return RagAnswer(
             question=question,
             answer=cache[prompt_hash],
@@ -267,7 +272,7 @@ def answer_question(
             max_tokens=max_tokens,
         )
     except Exception:
-        logger.exception("RAG LLM call failed for question %r", question[:60])
+        logger.exception("RAG LLM call failed for question %r", _sanitize_for_log(question))
         return RagAnswer(
             question=question,
             answer="LLM call failed. Please try again.",
@@ -286,8 +291,8 @@ def answer_question(
 
     logger.info(
         "rag answer generated: docket=%s question=%r cost=$%.6f",
-        docket_id,
-        question[:60],
+        _sanitize_for_log(docket_id),
+        _sanitize_for_log(question),
         cost,
     )
 
