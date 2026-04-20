@@ -282,6 +282,101 @@ def count_dockets(
     return int(row[0]) if row else 0
 
 
+_LIST_DOCS_SELECT = """
+        SELECT document_number, docket_id, title, doc_type, abstract,
+               agency_names, publication_date, effective_on, comments_close_on,
+               html_url, citation, significant, fetched_at
+        FROM documents
+        """
+_LIST_DOCS_ORDER = " ORDER BY publication_date DESC NULLS LAST LIMIT ? OFFSET ?"
+
+
+def list_documents(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    docket_id: str | None = None,
+    doc_type: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> list[dict[str, object]]:
+    """List Federal Register documents, optionally filtered by docket or type.
+
+    Results are ordered by publication_date descending (newest first).
+    Rows with a NULL publication_date sort last.
+    """
+    if docket_id is not None and doc_type is not None:
+        result = conn.execute(
+            _LIST_DOCS_SELECT + " WHERE docket_id = ? AND doc_type = ?" + _LIST_DOCS_ORDER,
+            [docket_id, doc_type, limit, offset],
+        )
+    elif docket_id is not None:
+        result = conn.execute(
+            _LIST_DOCS_SELECT + " WHERE docket_id = ?" + _LIST_DOCS_ORDER,
+            [docket_id, limit, offset],
+        )
+    elif doc_type is not None:
+        result = conn.execute(
+            _LIST_DOCS_SELECT + " WHERE doc_type = ?" + _LIST_DOCS_ORDER,
+            [doc_type, limit, offset],
+        )
+    else:
+        result = conn.execute(
+            _LIST_DOCS_SELECT + _LIST_DOCS_ORDER,
+            [limit, offset],
+        )
+    columns = [desc[0] for desc in result.description]
+    return [dict(zip(columns, row, strict=True)) for row in result.fetchall()]
+
+
+def count_documents(
+    conn: duckdb.DuckDBPyConnection,
+    *,
+    docket_id: str | None = None,
+    doc_type: str | None = None,
+) -> int:
+    """Count Federal Register documents, optionally filtered by docket or type."""
+    if docket_id is not None and doc_type is not None:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM documents WHERE docket_id = ? AND doc_type = ?",
+            [docket_id, doc_type],
+        ).fetchone()
+    elif docket_id is not None:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM documents WHERE docket_id = ?",
+            [docket_id],
+        ).fetchone()
+    elif doc_type is not None:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM documents WHERE doc_type = ?",
+            [doc_type],
+        ).fetchone()
+    else:
+        row = conn.execute("SELECT COUNT(*) FROM documents").fetchone()
+    return int(row[0]) if row else 0
+
+
+def get_document(
+    conn: duckdb.DuckDBPyConnection,
+    document_number: str,
+) -> dict[str, object] | None:
+    """Fetch a single Federal Register document by its document number."""
+    result = conn.execute(
+        """
+        SELECT document_number, docket_id, title, doc_type, abstract,
+               agency_names, publication_date, effective_on, comments_close_on,
+               html_url, citation, significant, fetched_at
+        FROM documents
+        WHERE document_number = ?
+        """,
+        [document_number],
+    )
+    columns = [desc[0] for desc in result.description]
+    row = result.fetchone()
+    if row is None:
+        return None
+    return dict(zip(columns, row, strict=True))
+
+
 def get_citation_graph(
     conn: duckdb.DuckDBPyConnection,
     docket_id: str,

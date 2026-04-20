@@ -160,3 +160,34 @@ def load_citations(
     )
     logger.info("loaded %d citations from %s", count, citations_parquet)
     return count
+
+
+def load_documents(
+    conn: duckdb.DuckDBPyConnection,
+    parquet_glob: str,
+) -> int:
+    """Load Federal Register document Parquet files into the documents table.
+
+    Uses ``INSERT OR REPLACE`` so that re-running after a fresh ingest always
+    reflects the latest fetched data.  Returns the number of rows in the
+    Parquet source (not the number of net-new inserts).
+    """
+    count_row = conn.execute("SELECT COUNT(*) FROM read_parquet(?)", [parquet_glob]).fetchone()
+    count = int(count_row[0]) if count_row else 0
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO documents (
+            document_number, docket_id, title, doc_type, abstract,
+            agency_names, publication_date, effective_on, comments_close_on,
+            html_url, citation, significant, fetched_at
+        )
+        SELECT
+            document_number, docket_id, title, doc_type, abstract,
+            agency_names, publication_date, effective_on, comments_close_on,
+            html_url, citation, significant, fetched_at
+        FROM read_parquet(?)
+        """,
+        [parquet_glob],
+    )
+    logger.info("loaded %d documents from %s", count, parquet_glob)
+    return count

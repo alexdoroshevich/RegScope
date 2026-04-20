@@ -190,6 +190,7 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
         load_citations,
         load_cluster_assignments,
         load_comments_parquet,
+        load_documents,
         load_duplicate_groups,
         load_embeddings,
     )
@@ -233,6 +234,13 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
         citations_pq = data_dir / "processed" / docket_id / "citations.parquet"
         if citations_pq.exists():
             load_citations(conn, str(citations_pq))
+
+        # Load Federal Register documents if present (global, not per-docket).
+        # Scans the entire year-partitioned tree written by `ingest.federal_register`.
+        fr_docs_dir = data_dir / "documents"
+        if fr_docs_dir.exists():
+            fr_glob = str(fr_docs_dir / "**" / "*.parquet")
+            load_documents(conn, fr_glob)
     finally:
         conn.close()
 
