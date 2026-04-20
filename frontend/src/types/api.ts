@@ -34,3 +34,22 @@ export interface ClusterComment {
   comment_text: string | null;
   submitter_name: string | null;
 }
+
+export interface GraphNode {
+  id: string;
+  label: string;
+  type: string;
+  count: number;
+  citation_type?: string;
+}
+
+export interface GraphLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}

@@ -83,7 +83,9 @@ class TestSchema:
     def test_idempotent_schema(self, db: duckdb.DuckDBPyConnection) -> None:
         init_schema(db)
         tables = db.execute("SHOW TABLES").fetchall()
-        assert len(tables) == 4
+        assert (
+            len(tables) == 5
+        )  # comments, duplicate_groups, comment_clusters, cluster_labels, citations
 
 
 class TestLoadCommentsParquet:

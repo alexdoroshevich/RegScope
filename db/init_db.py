@@ -111,3 +111,26 @@ def load_cluster_assignments(
     )
     logger.info("loaded %d cluster assignments from %s", count, clusters_parquet)
     return count
+
+
+def load_citations(
+    conn: duckdb.DuckDBPyConnection,
+    citations_parquet: str,
+) -> int:
+    """Load citation extractions from Parquet into the citations table."""
+    count_row = conn.execute("SELECT COUNT(*) FROM read_parquet(?)", [citations_parquet]).fetchone()
+    count = int(count_row[0]) if count_row else 0
+    # citations has no PK — delete matching docket rows first for idempotency.
+    conn.execute(
+        """
+        DELETE FROM citations
+        WHERE docket_id IN (SELECT DISTINCT docket_id FROM read_parquet(?))
+        """,
+        [citations_parquet],
+    )
+    conn.execute(
+        "INSERT INTO citations SELECT * FROM read_parquet(?)",
+        [citations_parquet],
+    )
+    logger.info("loaded %d citations from %s", count, citations_parquet)
+    return count

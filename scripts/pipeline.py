@@ -122,6 +122,22 @@ def _cluster(data_dir: Path, docket_id: str, min_cluster_size: int) -> Path:
     return out
 
 
+def _citations(data_dir: Path, docket_id: str) -> Path:
+    """Extract CFR/USC citations from processed comments."""
+    import polars as pl
+
+    from nlp.citations import extract_citations_from_df
+
+    pq = data_dir / "processed" / docket_id / "comments.parquet"
+    comments = pl.read_parquet(pq).select("comment_id", "docket_id", "comment_text")
+    citations_df = extract_citations_from_df(comments)
+
+    out = data_dir / "processed" / docket_id / "citations.parquet"
+    citations_df.write_parquet(out)
+    logger.info("citations: %d extracted → %s", citations_df.height, out)
+    return out
+
+
 def _label(data_dir: Path, docket_id: str) -> Path:
     """Label clusters via GPT-4o-mini."""
     import polars as pl
@@ -171,6 +187,7 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
     """Load all Parquet artefacts into DuckDB."""
     from db.init_db import (
         connect,
+        load_citations,
         load_cluster_assignments,
         load_comments_parquet,
         load_duplicate_groups,
@@ -207,6 +224,10 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
                     cost_usd=row["cost_usd"],
                 )
             logger.info("loaded %d cluster labels into DuckDB", labels_df.height)
+
+        citations_pq = data_dir / "processed" / docket_id / "citations.parquet"
+        if citations_pq.exists():
+            load_citations(conn, str(citations_pq))
     finally:
         conn.close()
 
@@ -264,6 +285,7 @@ def main(argv: list[str] | None = None) -> None:
         logger.info("skipping ingest, using existing Parquet")
 
     _process(data_dir, docket_id)
+    _citations(data_dir, docket_id)
     _dedup(data_dir, docket_id)
     _embed(data_dir, docket_id)
     _cluster(data_dir, docket_id, args.min_cluster_size)

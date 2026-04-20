@@ -229,3 +229,69 @@ def get_astroturf_summary(
         "total_flagged_comments": row[2],
         "max_campaign_likelihood": float(row[3]) if row[3] else 0.0,
     }
+
+
+def get_citation_graph(
+    conn: duckdb.DuckDBPyConnection,
+    docket_id: str,
+) -> dict[str, list[dict[str, object]]]:
+    """Return graph nodes and edges for citation visualization.
+
+    Nodes: the docket itself + each unique (cfr_title, cfr_part) pair.
+    Edges: docket → each regulation weighted by number of citing comments.
+    """
+    rows = conn.execute(
+        """
+        SELECT
+            cfr_title,
+            cfr_part,
+            citation_type,
+            COUNT(DISTINCT comment_id) AS comment_count,
+            ANY_VALUE(citation_text)   AS sample_text
+        FROM citations
+        WHERE docket_id = ?
+          AND cfr_title IS NOT NULL
+          AND cfr_part  IS NOT NULL
+        GROUP BY cfr_title, cfr_part, citation_type
+        ORDER BY comment_count DESC
+        """,
+        [docket_id],
+    ).fetchall()
+
+    if not rows:
+        return {"nodes": [], "links": []}
+
+    docket_node: dict[str, object] = {
+        "id": f"docket:{docket_id}",
+        "label": docket_id,
+        "type": "docket",
+        "count": 0,
+    }
+    nodes: list[dict[str, object]] = [docket_node]
+    links: list[dict[str, object]] = []
+
+    for cfr_title, cfr_part, citation_type, comment_count, _sample_text in rows:
+        node_id = f"{citation_type}:{cfr_title}:{cfr_part}"
+        label = (
+            f"{cfr_title} CFR Part {cfr_part}"
+            if citation_type == "CFR"
+            else f"{cfr_title} U.S.C. § {cfr_part}"
+        )
+        nodes.append(
+            {
+                "id": node_id,
+                "label": label,
+                "type": "regulation",
+                "count": int(comment_count),
+                "citation_type": citation_type,
+            }
+        )
+        links.append(
+            {
+                "source": f"docket:{docket_id}",
+                "target": node_id,
+                "value": int(comment_count),
+            }
+        )
+
+    return {"nodes": nodes, "links": links}

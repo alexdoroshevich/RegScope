@@ -66,10 +66,12 @@ class TestMainIntegration:
     @patch("scripts.pipeline._cluster")
     @patch("scripts.pipeline._embed")
     @patch("scripts.pipeline._dedup")
+    @patch("scripts.pipeline._citations")
     @patch("scripts.pipeline._process")
     def test_skip_ingest_skip_label(
         self,
         mock_process: MagicMock,
+        mock_citations: MagicMock,
         mock_dedup: MagicMock,
         mock_embed: MagicMock,
         mock_cluster: MagicMock,
@@ -98,6 +100,7 @@ class TestMainIntegration:
         main(["DOC-1", "--skip-ingest", "--skip-label"])
 
         mock_process.assert_called_once()
+        mock_citations.assert_called_once()
         mock_dedup.assert_called_once()
         mock_embed.assert_called_once()
         mock_cluster.assert_called_once()

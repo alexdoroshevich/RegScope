@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+
 export function HomePage() {
   return (
     <div className="p-6 space-y-6">
@@ -8,7 +9,7 @@ export function HomePage() {
         Regulatory intelligence — astroturf detection and comment clustering for
         federal rulemaking.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Link
           to="/astroturf"
           className="rounded-lg border border-slate-200 bg-white p-6 hover:bg-slate-50 transition"
@@ -25,6 +26,16 @@ export function HomePage() {
           <div className="text-xl font-semibold">Comment Clusters</div>
           <p className="mt-2 text-slate-600">
             Explore topic clusters within a docket, labeled by AI.
+          </p>
+        </Link>
+        <Link
+          to="/graph"
+          className="rounded-lg border border-slate-200 bg-white p-6 hover:bg-slate-50 transition"
+        >
+          <div className="text-xl font-semibold">Citation Graph</div>
+          <p className="mt-2 text-slate-600">
+            Visualize which CFR and U.S.C. regulations a docket&apos;s comments
+            reference most.
           </p>
         </Link>
       </div>

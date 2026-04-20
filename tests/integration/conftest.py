@@ -57,6 +57,16 @@ def _seed(conn: duckdb.DuckDBPyConnection) -> None:
         """,
         [_DOCKET],
     )
+    conn.execute(
+        """
+        INSERT INTO citations (comment_id, docket_id, citation_text, citation_type, cfr_title, cfr_part)
+        VALUES
+          ('C-001', ?, '40 CFR Part 60', 'CFR', 40, 60),
+          ('C-002', ?, '40 CFR Part 60', 'CFR', 40, 60),
+          ('C-003', ?, '5 U.S.C. § 553',  'USC',  5, 553)
+        """,
+        [_DOCKET, _DOCKET, _DOCKET],
+    )
 
 
 @pytest.fixture()
