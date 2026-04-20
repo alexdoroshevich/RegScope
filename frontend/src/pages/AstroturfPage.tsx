@@ -8,9 +8,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getAstroturfSummary, getDuplicateGroups } from "../api/client";
+import { getAstroturfSummary, getDuplicateGroups, getGroupComments } from "../api/client";
 import { SummaryCard } from "../components/SummaryCard";
-import type { AstroturfSummary, DuplicateGroup } from "../types/api";
+import type { AstroturfSummary, ClusterComment, DuplicateGroup } from "../types/api";
 
 const PAGE_SIZE = 20;
 
@@ -21,6 +21,11 @@ export function AstroturfPage() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Drill-down state
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [comments, setComments] = useState<ClusterComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -49,6 +54,27 @@ export function AstroturfPage() {
   useEffect(() => {
     void loadPage(page);
   }, [loadPage, page]);
+
+  const toggleGroup = useCallback(
+    async (groupId: number) => {
+      if (expanded === groupId) {
+        setExpanded(null);
+        setComments([]);
+        return;
+      }
+      setExpanded(groupId);
+      setCommentsLoading(true);
+      try {
+        const data = await getGroupComments(groupId);
+        setComments(data);
+      } catch {
+        setComments([]);
+      } finally {
+        setCommentsLoading(false);
+      }
+    },
+    [expanded],
+  );
 
   if (loading && page === 0) return <div className="p-6">Loading…</div>;
   if (error) return <div className="p-6 text-red-700">Error: {error}</div>;
@@ -117,20 +143,64 @@ export function AstroturfPage() {
           {groups.map((g) => (
             <li
               key={g.group_id}
-              className="rounded-lg border border-slate-200 bg-white p-4"
+              className="rounded-lg border border-slate-200 bg-white"
             >
-              <div className="flex justify-between text-sm text-slate-600">
-                <span>Group #{g.group_id}</span>
-                <span>
-                  {g.group_size} comments / {g.unique_submitters} submitters
-                </span>
-              </div>
-              <p className="mt-2 text-slate-800 line-clamp-2">
-                {g.template_text ?? "(no template)"}
-              </p>
-              <div className="mt-2 text-xs text-red-700 font-medium">
-                Likelihood: {g.campaign_likelihood.toFixed(2)}
-              </div>
+              <button
+                type="button"
+                className="w-full text-left p-4 hover:bg-slate-50 transition"
+                onClick={() => void toggleGroup(g.group_id)}
+              >
+                <div className="flex justify-between items-start">
+                  <span className="text-sm text-slate-600">
+                    Group #{g.group_id}
+                  </span>
+                  <div className="flex items-center gap-3 text-sm text-slate-500">
+                    <span>
+                      {g.group_size} comments / {g.unique_submitters} submitters
+                    </span>
+                    <span className="text-slate-400">
+                      {expanded === g.group_id ? "collapse" : "expand"}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-slate-800 line-clamp-2">
+                  {g.template_text ?? "(no template)"}
+                </p>
+                <div className="mt-2 text-xs text-red-700 font-medium">
+                  Likelihood: {g.campaign_likelihood.toFixed(2)}
+                </div>
+              </button>
+
+              {expanded === g.group_id && (
+                <div className="border-t border-slate-100 p-4">
+                  {commentsLoading ? (
+                    <div className="text-sm text-slate-500">
+                      Loading comments…
+                    </div>
+                  ) : comments.length === 0 ? (
+                    <div className="text-sm text-slate-500">
+                      No comments found.
+                    </div>
+                  ) : (
+                    <ul className="space-y-2">
+                      {comments.map((cm) => (
+                        <li
+                          key={cm.comment_id}
+                          className="rounded border border-slate-100 p-3 text-sm"
+                        >
+                          <div className="text-xs text-slate-500 mb-1">
+                            {cm.submitter_name ?? "Anonymous"} &middot;{" "}
+                            {cm.comment_id}
+                          </div>
+                          <p className="text-slate-800 line-clamp-3">
+                            {cm.comment_text ?? "(no text)"}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>

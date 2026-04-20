@@ -5,15 +5,21 @@ from __future__ import annotations
 from typing import Annotated
 
 import duckdb
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from api.deps import get_db
 from api.models.astroturf import (
     AstroturfSummaryResponse,
     DuplicateGroupListResponse,
     DuplicateGroupOut,
+    GroupCommentOut,
 )
-from db.queries import count_duplicate_groups, get_astroturf_summary, get_duplicate_groups
+from db.queries import (
+    count_duplicate_groups,
+    get_astroturf_summary,
+    get_comments_by_group,
+    get_duplicate_groups,
+)
 
 router = APIRouter(prefix="/astroturf", tags=["astroturf"])
 
@@ -35,6 +41,25 @@ def list_duplicate_groups(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/groups/{group_id}/comments", response_model=list[GroupCommentOut])
+def list_group_comments(
+    group_id: int,
+    limit: Annotated[int, Query(ge=1, le=500)] = 50,
+    *,
+    db: Annotated[duckdb.DuckDBPyConnection, Depends(get_db)],
+) -> list[GroupCommentOut]:
+    """Return the actual comments belonging to a duplicate group."""
+    rows = get_comments_by_group(db, group_id, limit=limit)
+    if not rows:
+        # Distinguish "group exists but has no matched comments" from "group not found"
+        exists = db.execute(
+            "SELECT 1 FROM duplicate_groups WHERE group_id = ?", [group_id]
+        ).fetchone()
+        if exists is None:
+            raise HTTPException(status_code=404, detail=f"Group {group_id} not found")
+    return [GroupCommentOut.model_validate(r) for r in rows]
 
 
 @router.get("/summary", response_model=AstroturfSummaryResponse)
