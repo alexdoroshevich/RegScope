@@ -38,6 +38,14 @@ _TEMPLATE_TEXTS = [
 ]
 _FIRST_NAMES = ["Alice", "Bob", "Carol", "David", "Eve", "Frank", "Grace", "Hank"]
 _LAST_NAMES = ["Smith", "Jones", "Williams", "Brown", "Taylor", "Davis", "Wilson"]
+_CFR_CITATIONS = [
+    ("40 CFR Part 60", "CFR", 40, 60),
+    ("40 CFR Part 63", "CFR", 40, 63),
+    ("40 CFR Part 98", "CFR", 40, 98),
+    ("42 CFR Part 73", "CFR", 42, 73),
+    ("5 U.S.C. § 553", "USC", 5, 553),
+    ("5 U.S.C. § 706", "USC", 5, 706),
+]
 
 
 def _random_id(prefix: str = "CMS") -> str:
@@ -149,6 +157,35 @@ def _make_cluster_labels() -> pl.DataFrame:
     return pl.DataFrame(rows)
 
 
+def _make_citations(comments_df: pl.DataFrame, rng: random.Random) -> pl.DataFrame:
+    """Assign a random subset of comments synthetic CFR/USC citations."""
+    rows = []
+    for comment_id in comments_df["comment_id"].to_list():
+        if rng.random() < 0.3:  # ~30% of comments reference a regulation
+            text, ctype, ctitle, cpart = rng.choice(_CFR_CITATIONS)
+            rows.append(
+                {
+                    "comment_id": comment_id,
+                    "docket_id": _DOCKET_ID,
+                    "citation_text": text,
+                    "citation_type": ctype,
+                    "cfr_title": ctitle,
+                    "cfr_part": cpart,
+                }
+            )
+    return pl.DataFrame(
+        rows if rows else [],
+        schema={
+            "comment_id": pl.String,
+            "docket_id": pl.String,
+            "citation_text": pl.String,
+            "citation_type": pl.String,
+            "cfr_title": pl.Int32,
+            "cfr_part": pl.Int32,
+        },
+    )
+
+
 def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
     """Generate synthetic data and load it into DuckDB."""
     rng = random.Random(42)
@@ -158,6 +195,7 @@ def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
     groups_df = _make_duplicate_groups(comments_df, rng)
     clusters_df = _make_clusters(comments_df, rng)
     labels_df = _make_cluster_labels()
+    citations_df = _make_citations(comments_df, rng)
 
     processed_dir = data_dir / "processed" / _DOCKET_ID
     processed_dir.mkdir(parents=True, exist_ok=True)
@@ -166,15 +204,18 @@ def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
     groups_path = processed_dir / "duplicate_groups.parquet"
     clusters_path = processed_dir / "clusters.parquet"
     labels_path = processed_dir / "cluster_labels.parquet"
+    citations_path = processed_dir / "citations.parquet"
 
     comments_df.write_parquet(comments_path, compression="snappy")
     groups_df.write_parquet(groups_path, compression="snappy")
     clusters_df.write_parquet(clusters_path, compression="snappy")
     labels_df.write_parquet(labels_path, compression="snappy")
+    citations_df.write_parquet(citations_path, compression="snappy")
     logger.info("wrote Parquet artefacts to %s", processed_dir)
 
     from db.init_db import (
         connect,
+        load_citations,
         load_cluster_assignments,
         load_comments_parquet,
         load_duplicate_groups,
@@ -187,6 +228,7 @@ def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
         load_comments_parquet(conn, str(comments_path))
         load_duplicate_groups(conn, str(groups_path))
         load_cluster_assignments(conn, str(clusters_path))
+        load_citations(conn, str(citations_path))
         for row in labels_df.iter_rows(named=True):
             upsert_cluster_label(
                 conn,

@@ -3,6 +3,7 @@ import type {
   ClusterComment,
   ClusterSummary,
   DuplicateGroupListResponse,
+  GraphResponse,
 } from "../types/api";
 
 const API_BASE = "/api/v1";
@@ -39,6 +40,12 @@ export function getClustersByDocket(
 ): Promise<ClusterSummary[]> {
   return fetchJson<ClusterSummary[]>(
     `/clusters/${encodeURIComponent(docketId)}`,
+  );
+}
+
+export function getCitationGraph(docketId: string): Promise<GraphResponse> {
+  return fetchJson<GraphResponse>(
+    `/graph/${encodeURIComponent(docketId)}`,
   );
 }
 

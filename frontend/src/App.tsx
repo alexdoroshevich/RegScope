@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { AstroturfPage } from "./pages/AstroturfPage";
 import { ClustersPage } from "./pages/ClustersPage";
+import { GraphPage } from "./pages/GraphPage";
 import { HomePage } from "./pages/HomePage";
 
 export default function App() {
@@ -17,6 +18,9 @@ export default function App() {
           <Link to="/clusters" className="text-slate-600 hover:text-slate-900">
             Clusters
           </Link>
+          <Link to="/graph" className="text-slate-600 hover:text-slate-900">
+            Citation Graph
+          </Link>
         </nav>
       </header>
       <main>
@@ -24,6 +28,7 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/astroturf" element={<AstroturfPage />} />
           <Route path="/clusters" element={<ClustersPage />} />
+          <Route path="/graph" element={<GraphPage />} />
         </Routes>
       </main>
     </div>

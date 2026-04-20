@@ -15,7 +15,7 @@ describe("App", () => {
     expect(screen.getByText(/Comment Clusters/)).toBeInTheDocument();
   });
 
-  it("renders the top nav with both feature links", () => {
+  it("renders the top nav with all feature links", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <App />
@@ -25,5 +25,6 @@ describe("App", () => {
     const hrefs = links.map((l) => l.getAttribute("href"));
     expect(hrefs).toContain("/astroturf");
     expect(hrefs).toContain("/clusters");
+    expect(hrefs).toContain("/graph");
   });
 });
