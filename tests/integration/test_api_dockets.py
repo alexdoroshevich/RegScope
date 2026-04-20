@@ -52,9 +52,7 @@ class TestDocketsEndpoint:
     def test_search_filter_is_case_insensitive(self, api_client: TestClient) -> None:
         lower = api_client.get("/api/v1/dockets", params={"q": "epa"}).json()
         upper = api_client.get("/api/v1/dockets", params={"q": "EPA"}).json()
-        assert {d["docket_id"] for d in lower["items"]} == {
-            d["docket_id"] for d in upper["items"]
-        }
+        assert {d["docket_id"] for d in lower["items"]} == {d["docket_id"] for d in upper["items"]}
 
     def test_search_no_match_returns_empty(self, api_client: TestClient) -> None:
         body = api_client.get("/api/v1/dockets", params={"q": "NOMATCH-XYZ"}).json()
