@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount data directory so the DB and Parquet files persist across restarts.
+      - ./data:/app/data
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      REGSCOPE_DATA_DIR: /app/data
+      REGSCOPE_DB_PATH: /app/data/regscope.db
+      REGSCOPE_LOG_LEVEL: INFO
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
