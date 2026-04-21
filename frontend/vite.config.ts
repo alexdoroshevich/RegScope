@@ -17,12 +17,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./tests/setup.ts",
     alias: {
-      // react-force-graph-2d draws to <canvas> which jsdom does not implement.
-      // Replace with a lightweight stub that renders a plain div.
-      "react-force-graph-2d": new URL(
-        "./tests/__mocks__/react-force-graph-2d.tsx",
-        import.meta.url,
-      ).pathname,
+      // (reserved for future test aliases; e.g. stub heavy libraries that
+      // can't render in jsdom)
     },
   },
 });

@@ -7,10 +7,10 @@ import { DocketsPage } from "./pages/DocketsPage";
 import { HomePage } from "./pages/HomePage";
 import { QueryPage } from "./pages/QueryPage";
 
-// GraphPage imports react-force-graph (three.js + A-Frame VR bundle).
-// Lazy-load it so a compatibility failure on the graph page doesn't crash
-// every other page.  Map the named export to `default` so both code paths
-// satisfy React.lazy's { default: ComponentType } contract.
+// GraphPage renders a Recharts Sankey + optional bar chart. Lazy-load it
+// so any rendering failure (e.g. data-shape mismatch) falls back
+// gracefully instead of taking down the rest of the app. Map the named
+// export to `default` to satisfy React.lazy's contract.
 const GraphPage = lazy(() =>
   import("./pages/GraphPage")
     .then((mod) => ({ default: mod.GraphPage }))
@@ -19,8 +19,8 @@ const GraphPage = lazy(() =>
         <div className="space-y-4">
           <h1 className="text-3xl font-bold text-stone-900">Citation Graph</h1>
           <div className="rounded-xl border border-stone-200 bg-white p-6 text-sm text-stone-600">
-            Graph visualisation failed to load. The 3-D rendering library
-            encountered a compatibility issue in this environment.
+            Graph visualisation failed to load. See the browser console
+            for details.
           </div>
         </div>
       ),
