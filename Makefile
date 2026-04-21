@@ -67,7 +67,7 @@ check: lint test
 
 # === Deploy ===
 build:
-	docker build -t regscope .
+	docker build -t fedcomment .
 
 # === Clean ===
 clean:

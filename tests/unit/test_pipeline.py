@@ -94,8 +94,8 @@ class TestMainIntegration:
             }
         ).write_parquet(pq_dir / "part-00000.parquet")
 
-        monkeypatch.setenv("REGSCOPE_DATA_DIR", str(data_dir))
-        monkeypatch.setenv("REGSCOPE_DB_PATH", str(tmp_path / "test.db"))
+        monkeypatch.setenv("FEDCOMMENT_DATA_DIR", str(data_dir))
+        monkeypatch.setenv("FEDCOMMENT_DB_PATH", str(tmp_path / "test.db"))
 
         main(["DOC-1", "--skip-ingest", "--skip-label"])
 
@@ -112,8 +112,8 @@ class TestMainIntegration:
         tmp_path: Path,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        monkeypatch.setenv("REGSCOPE_DATA_DIR", str(tmp_path / "empty"))
-        monkeypatch.setenv("REGSCOPE_DB_PATH", str(tmp_path / "test.db"))
+        monkeypatch.setenv("FEDCOMMENT_DATA_DIR", str(tmp_path / "empty"))
+        monkeypatch.setenv("FEDCOMMENT_DB_PATH", str(tmp_path / "test.db"))
 
         with pytest.raises(SystemExit):
             main(["DOC-1", "--skip-ingest"])

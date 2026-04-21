@@ -22,10 +22,10 @@ class Settings(BaseSettings):
     regulations_gov_api_key: str = Field(default="", alias="REGULATIONS_GOV_API_KEY")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
 
-    data_dir: Path = Field(default=Path("./data/raw"), alias="REGSCOPE_DATA_DIR")
-    db_path: Path = Field(default=Path("./data/regscope.db"), alias="REGSCOPE_DB_PATH")
+    data_dir: Path = Field(default=Path("./data/raw"), alias="FEDCOMMENT_DATA_DIR")
+    db_path: Path = Field(default=Path("./data/fedcomment.db"), alias="FEDCOMMENT_DB_PATH")
 
-    log_level: str = Field(default="INFO", alias="REGSCOPE_LOG_LEVEL")
+    log_level: str = Field(default="INFO", alias="FEDCOMMENT_LOG_LEVEL")
 
 
 @lru_cache(maxsize=1)

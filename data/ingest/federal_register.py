@@ -430,7 +430,7 @@ def _main() -> None:
         default=None,
         type=Path,
         metavar="DIR",
-        help="Override data directory (default: REGSCOPE_DATA_DIR from .env).",
+        help="Override data directory (default: FEDCOMMENT_DATA_DIR from .env).",
     )
 
     args = parser.parse_args()

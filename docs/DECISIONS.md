@@ -13,18 +13,18 @@ Format: [ADR MADR-lite](https://adr.github.io/madr/).
 
 ### Context
 
-RegScope's architecture rules forbid `pandas` (polars is the dataframe of
+FedComment's architecture rules forbid `pandas` (polars is the dataframe of
 record) but the original Python rule required `pandera` for DataFrame schema
 validation at pipeline boundaries.
 
 `pandera.polars`, despite being the polars-native entry point, unconditionally
 imports `pandas` through its shared `schema_statistics` module. Installing
 `pandera[polars]` therefore requires pulling pandas (~55 MB installed) into
-every RegScope container, into CI, and into developer environments. This
+every FedComment container, into CI, and into developer environments. This
 violates the spirit of the "no pandas" architecture rule even though pandas
 code is not written by us.
 
-Auditing the schemas RegScope needs across its roadmap (raw/processed
+Auditing the schemas FedComment needs across its roadmap (raw/processed
 comments, `duplicate_groups`, `clusters`) shows only four simple invariants
 per schema: presence, dtype, nullability, uniqueness. None of Pandera's
 advanced features (cross-column checks, coercion, typing integration,
@@ -34,7 +34,7 @@ hypothesis integration) are used or planned.
 
 Drop `pandera[polars]` from `pyproject.toml`. Introduce `data/validation.py`
 with a single `validate(frame, *, required, unique, non_null, strict)` helper
-that covers RegScope's needs in ~30 lines of polars. Each boundary module
+that covers FedComment's needs in ~30 lines of polars. Each boundary module
 exports a thin `validate_<table>(frame)` function wrapping it.
 
 ### Consequences
