@@ -19,6 +19,12 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // set-state-in-effect was added in react-hooks v5 and flags two
+      // patterns we intentionally use: (a) guard-clause setState to clear
+      // stale suggestions in DocketSearch, and (b) void asyncFn() calls in
+      // useEffect where setState only fires asynchronously after await.
+      // Neither pattern causes cascading renders; disabling avoids noise.
+      "react-hooks/set-state-in-effect": "off",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },
