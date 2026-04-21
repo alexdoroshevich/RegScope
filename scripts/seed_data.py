@@ -257,13 +257,13 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--data-dir",
         type=Path,
         default=None,
-        help="Override REGSCOPE_DATA_DIR",
+        help="Override FEDCOMMENT_DATA_DIR",
     )
     parser.add_argument(
         "--db-path",
         type=Path,
         default=None,
-        help="Override REGSCOPE_DB_PATH",
+        help="Override FEDCOMMENT_DB_PATH",
     )
     return parser.parse_args(argv)
 

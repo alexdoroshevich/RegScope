@@ -10,9 +10,9 @@ services:
       - path: .env
         required: false
     environment:
-      REGSCOPE_DATA_DIR: /app/data
-      REGSCOPE_DB_PATH: /app/data/regscope.db
-      REGSCOPE_LOG_LEVEL: INFO
+      FEDCOMMENT_DATA_DIR: /app/data
+      FEDCOMMENT_DB_PATH: /app/data/fedcomment.db
+      FEDCOMMENT_LOG_LEVEL: INFO
     healthcheck:
       test:
         - CMD

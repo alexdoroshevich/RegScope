@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 @pytest.fixture
 def data_dir(tmp_path: Path) -> Path:
-    """Ephemeral REGSCOPE_DATA_DIR for tests — cleaned up automatically."""
+    """Ephemeral FEDCOMMENT_DATA_DIR for tests — cleaned up automatically."""
     path = tmp_path / "raw"
     path.mkdir()
     return path

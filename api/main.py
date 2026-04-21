@@ -20,7 +20,7 @@ def create_app() -> FastAPI:
     configure_logging(settings.log_level)
 
     application = FastAPI(
-        title="RegScope API",
+        title="FedComment API",
         description="Regulatory intelligence — astroturf detection and comment clustering.",
         version="0.1.0",
     )

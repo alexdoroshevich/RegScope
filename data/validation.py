@@ -1,6 +1,6 @@
 """Polars-native schema validation at pipeline boundaries.
 
-Replaces :mod:`pandera` for the simple schemas RegScope needs (presence,
+Replaces :mod:`pandera` for the simple schemas FedComment needs (presence,
 dtype, nullability, uniqueness). Avoids pulling pandas as a transitive
 dependency. See ``docs/DECISIONS.md`` (ADR-0001).
 """

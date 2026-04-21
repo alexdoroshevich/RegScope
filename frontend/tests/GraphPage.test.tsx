@@ -107,7 +107,7 @@ describe("GraphPage", () => {
     await user.type(screen.getByPlaceholderText(/Enter docket ID/), "BAD");
     await user.click(screen.getByRole("button", { name: "Search" }));
     await waitFor(() => {
-      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText(/API error 500/)).toBeInTheDocument();
     });
   });
 

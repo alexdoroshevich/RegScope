@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-RegScope is in pre-1.0 MVP development. Only the latest commit on `main` receives
+FedComment is in pre-1.0 MVP development. Only the latest commit on `main` receives
 security fixes. There are no released versions yet.
 
 | Version | Supported          |
@@ -45,7 +45,7 @@ In scope:
 
 Out of scope:
 
-- Vulnerabilities in third-party services RegScope depends on
+- Vulnerabilities in third-party services FedComment depends on
   (Federal Register API, Regulations.gov, OpenAI, etc.) — report those upstream.
 - Findings that require a compromised developer machine, stolen credentials,
   or non-default insecure configuration.

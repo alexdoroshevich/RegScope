@@ -1,17 +1,24 @@
-# RegScope — Federal Register Regulatory Intelligence
+# FedComment — Federal Register Regulatory Intelligence
 
-> AI-powered analysis of public comments on federal regulations.
+> AI-powered analysis of public comments on US federal regulations.
 > Detect astroturf campaigns. Cluster comment themes. Visualize citation networks. Query in plain English.
 
 [![PR Gate](https://github.com/alexdoroshevich/RegScope/actions/workflows/pr-gate.yml/badge.svg)](https://github.com/alexdoroshevich/RegScope/actions/workflows/pr-gate.yml)
 [![Security](https://github.com/alexdoroshevich/RegScope/actions/workflows/security.yml/badge.svg)](https://github.com/alexdoroshevich/RegScope/actions/workflows/security.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+> ⚠️ **Disclaimer** — FedComment is an open-source research and educational tool.
+> It is **not** legal, regulatory, or professional advice, and it is **not** affiliated
+> with, endorsed by, or sponsored by any US government agency. AI-generated summaries,
+> labels, and answers may contain errors. Submitter names from public comments are
+> anonymised by default to protect privacy. See [DISCLAIMER.md](DISCLAIMER.md) and
+> [TERMS_OF_USE.md](TERMS_OF_USE.md) before use.
 
 ---
 
 ## What it does
 
-RegScope ingests public comments from [Regulations.gov](https://regulations.gov) and surfaces four kinds of analysis:
+FedComment ingests public comments from [Regulations.gov](https://regulations.gov) and surfaces four kinds of analysis:
 
 | Feature | What it answers |
 |---|---|
@@ -49,7 +56,7 @@ make dev-frontend    # React dev server at http://localhost:5173
 ### Docker
 
 ```bash
-docker build -t regscope .
+docker build -t fedcomment .
 docker compose up          # API on :8000, UI served from FastAPI static files
 ```
 
@@ -86,7 +93,7 @@ make summarize         # GPT-4o-mini cluster labels (cached)
 | Deduplication | datasketch MinHash/LSH |
 | NER | spaCy `en_core_web_sm` |
 | LLM | GPT-4o-mini via [litellm](https://github.com/BerriAI/litellm) (every response cached) |
-| Frontend | React 18, Vite, Tailwind CSS, Recharts, react-force-graph |
+| Frontend | React 18, Vite, Tailwind CSS, Recharts, react-force-graph-2d |
 
 ---
 
@@ -133,6 +140,17 @@ See [docs/DECISIONS.md](docs/DECISIONS.md) for why DuckDB over PostgreSQL, Polar
 
 ---
 
+## Legal & Privacy
+
+- **[LICENSE](LICENSE)** — Apache 2.0. Permissive; explicit patent grant; no warranty.
+- **[DISCLAIMER.md](DISCLAIMER.md)** — What this tool is and isn't. Read before use.
+- **[TERMS_OF_USE.md](TERMS_OF_USE.md)** — Terms for anyone using a hosted instance.
+- **[PRIVACY.md](PRIVACY.md)** — Data handling, PII redaction, and what we don't collect.
+- **[SECURITY.md](SECURITY.md)** — Responsible vulnerability disclosure.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — How to contribute (DCO sign-off required).
+
+---
+
 ## License
 
-MIT
+Licensed under the [Apache License, Version 2.0](LICENSE).

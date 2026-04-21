@@ -62,8 +62,8 @@ describe("AstroturfPage", () => {
         screen.getByText("Repeat this comment exactly"),
       ).toBeInTheDocument();
     });
-    expect(screen.getByText(/Group #1/)).toBeInTheDocument();
-    expect(screen.getByText(/3 comments \/ 1 submitters/)).toBeInTheDocument();
+    expect(screen.getByText(/#1/)).toBeInTheDocument();
+    expect(screen.getByText(/3 comments · 1 submitters/)).toBeInTheDocument();
   });
 
   it("shows an error when the API fails", async () => {
@@ -75,7 +75,7 @@ describe("AstroturfPage", () => {
     );
     render(<AstroturfPage />);
     await waitFor(() => {
-      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText(/API error 500/)).toBeInTheDocument();
     });
   });
 });

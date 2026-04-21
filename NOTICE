@@ -1,0 +1,13 @@
+FedComment
+Copyright 2026 Alexander Doroshevich
+
+This product includes software developed by the FedComment contributors
+(https://github.com/alexdoroshevich/RegScope).
+
+Licensed under the Apache License, Version 2.0.
+
+FedComment is a research and educational tool for analysing public comments
+submitted on US federal regulations. It is not affiliated with, endorsed by,
+or sponsored by any US government agency. Data is sourced from public US
+federal APIs (Federal Register, Regulations.gov) and bears the attribution
+and licensing of those sources.

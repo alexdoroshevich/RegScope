@@ -12,21 +12,15 @@ export default defineConfig({
       },
     },
   },
-  // three.js 0.175+ removed pre-built files from the npm package.
-  // Excluding these from esbuild pre-bundling lets Vite serve their
-  // source files directly at request time instead.
-  optimizeDeps: {
-    exclude: ["three", "react-force-graph"],
-  },
   test: {
     globals: true,
     environment: "jsdom",
     setupFiles: "./tests/setup.ts",
     alias: {
-      // react-force-graph bundles three.js which can't resolve in jsdom.
+      // react-force-graph-2d draws to <canvas> which jsdom does not implement.
       // Replace with a lightweight stub that renders a plain div.
-      "react-force-graph": new URL(
-        "./tests/__mocks__/react-force-graph.tsx",
+      "react-force-graph-2d": new URL(
+        "./tests/__mocks__/react-force-graph-2d.tsx",
         import.meta.url,
       ).pathname,
     },

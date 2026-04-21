@@ -12,7 +12,9 @@ import {
 } from "recharts";
 import { getClusterComments, getClustersByDocket } from "../api/client";
 import { DocketSearch } from "../components/DocketSearch";
+import { PIIRevealBanner, PIIToggle } from "../components/PIIToggle";
 import { SummaryCard } from "../components/SummaryCard";
+import { formatSubmitter } from "../lib/pii";
 import type { ClusterComment, ClusterSummary } from "../types/api";
 
 export function ClustersPage() {
@@ -26,6 +28,8 @@ export function ClustersPage() {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [comments, setComments] = useState<ClusterComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
+
+  const [revealPII, setRevealPII] = useState(false);
 
   const search = useCallback(async () => {
     const trimmed = docketId.trim();
@@ -71,9 +75,21 @@ export function ClustersPage() {
   const labeledCount = clusters.filter((c) => c.label !== null).length;
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Comment Clusters</h1>
+    <div className="space-y-8">
+      {/* header */}
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-600 ring-1 ring-sky-200">
+            ◎
+          </span>
+          <h1 className="text-2xl font-bold text-stone-800">Comment Clusters</h1>
+        </div>
+        <p className="mt-1 text-sm text-stone-500">
+          Semantic topics discovered via HDBSCAN on sentence embeddings.
+        </p>
+      </div>
 
+      {/* search */}
       <form
         className="flex gap-3"
         onSubmit={(e) => {
@@ -90,32 +106,44 @@ export function ClustersPage() {
         <button
           type="submit"
           disabled={loading || !docketId.trim()}
-          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Loading..." : "Search"}
+          {loading ? "Loading…" : "Search"}
         </button>
       </form>
 
-      {error && <div className="text-red-700">Error: {error}</div>}
+      {/* states */}
+      {error && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
 
       {searched && !loading && !error && clusters.length === 0 && (
-        <div className="text-slate-500">
+        <div className="rounded-xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500 shadow-sm">
           No clusters found for this docket.
         </div>
       )}
 
       {clusters.length > 0 && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* summary */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <SummaryCard label="Clusters" value={clusters.length} />
             <SummaryCard label="Total comments" value={totalComments} />
             <SummaryCard label="Labeled" value={`${labeledCount} / ${clusters.length}`} />
           </div>
 
-          <section>
-            <h2 className="text-xl font-semibold mb-3">Comments per cluster</h2>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 mb-6">
-              <ResponsiveContainer width="100%" height={Math.max(200, clusters.length * 36)}>
+          {/* chart */}
+          <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-600">
+              Comments per cluster
+            </h2>
+            <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(200, Math.min(clusters.length, 25) * 32 + 40)}
+              >
                 <BarChart
                   data={clusters.slice(0, 25).map((c) => ({
                     name: c.label ?? `#${c.cluster_id}`,
@@ -125,20 +153,35 @@ export function ClustersPage() {
                   layout="vertical"
                   margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: "#78716c" }}
+                    stroke="#d6d3d1"
+                  />
                   <YAxis
                     type="category"
                     dataKey="name"
-                    width={160}
-                    tick={{ fontSize: 11 }}
+                    width={180}
+                    tick={{ fontSize: 11, fill: "#44403c" }}
+                    stroke="#d6d3d1"
                   />
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e7e5e4",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: "#1c1917",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    }}
+                    cursor={{ fill: "rgba(14,165,233,0.08)" }}
+                  />
                   <Bar dataKey="comments" radius={[0, 4, 4, 0]}>
                     {clusters.slice(0, 25).map((c) => (
                       <Cell
                         key={c.cluster_id}
-                        fill={c.cluster_id === -1 ? "#94a3b8" : "#3b82f6"}
+                        fill={c.cluster_id === -1 ? "#a8a29e" : "#38bdf8"}
                       />
                     ))}
                   </Bar>
@@ -147,69 +190,102 @@ export function ClustersPage() {
             </div>
           </section>
 
-          <section>
-            <h2 className="text-xl font-semibold mb-3">Clusters</h2>
+          {/* cluster list */}
+          <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-600">
+              Clusters
+            </h2>
             <ul className="space-y-3">
-              {clusters.map((c) => (
-                <li
-                  key={c.cluster_id}
-                  className="rounded-lg border border-slate-200 bg-white"
-                >
-                  <button
-                    type="button"
-                    className="w-full text-left p-4 hover:bg-slate-50 transition"
-                    onClick={() => void toggleCluster(c.cluster_id)}
+              {clusters.map((c) => {
+                const isOpen = expanded === c.cluster_id;
+                const isNoise = c.cluster_id === -1;
+                return (
+                  <li
+                    key={c.cluster_id}
+                    className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition hover:border-stone-300"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="font-medium text-slate-900">
-                          {c.label ?? `Cluster #${c.cluster_id}`}
-                        </span>
-                        <span className="ml-2 text-sm text-slate-500">
-                          ({c.comment_count} comments)
-                        </span>
+                    <button
+                      type="button"
+                      className="w-full px-5 py-4 text-left transition hover:bg-stone-50"
+                      onClick={() => void toggleCluster(c.cluster_id)}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span
+                            className={`h-2 w-2 shrink-0 rounded-full ${
+                              isNoise ? "bg-stone-400" : "bg-sky-500"
+                            }`}
+                          />
+                          <span className="truncate font-medium text-stone-800">
+                            {c.label ?? `Cluster #${c.cluster_id}`}
+                          </span>
+                          {isNoise && (
+                            <span className="rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-xs text-stone-500">
+                              noise
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-stone-500">
+                          <span className="tabular-nums">
+                            {c.comment_count} comments
+                          </span>
+                          <span
+                            className={`transition ${isOpen ? "rotate-180" : ""} text-stone-400`}
+                            aria-hidden
+                          >
+                            ▾
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-slate-400 text-sm">
-                        {expanded === c.cluster_id ? "collapse" : "expand"}
-                      </span>
-                    </div>
-                    {c.summary && (
-                      <p className="mt-1 text-sm text-slate-600">{c.summary}</p>
-                    )}
-                  </button>
-
-                  {expanded === c.cluster_id && (
-                    <div className="border-t border-slate-100 p-4">
-                      {commentsLoading ? (
-                        <div className="text-sm text-slate-500">
-                          Loading comments...
-                        </div>
-                      ) : comments.length === 0 ? (
-                        <div className="text-sm text-slate-500">
-                          No comments found.
-                        </div>
-                      ) : (
-                        <ul className="space-y-2">
-                          {comments.map((cm) => (
-                            <li
-                              key={cm.comment_id}
-                              className="rounded border border-slate-100 p-3 text-sm"
-                            >
-                              <div className="text-xs text-slate-500 mb-1">
-                                {cm.submitter_name ?? "Anonymous"} &middot;{" "}
-                                {cm.comment_id}
-                              </div>
-                              <p className="text-slate-800 line-clamp-3">
-                                {cm.comment_text ?? "(no text)"}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
+                      {c.summary && (
+                        <p className="mt-2 line-clamp-2 text-sm text-stone-600">
+                          {c.summary}
+                        </p>
                       )}
-                    </div>
-                  )}
-                </li>
-              ))}
+                    </button>
+
+                    {isOpen && (
+                      <div className="border-t border-stone-200/70 bg-stone-50/70 px-5 py-4">
+                        {commentsLoading ? (
+                          <div className="text-sm text-stone-500">Loading comments…</div>
+                        ) : comments.length === 0 ? (
+                          <div className="text-sm text-stone-500">No comments found.</div>
+                        ) : (
+                          <>
+                            <PIIToggle
+                              revealed={revealPII}
+                              onToggle={() => setRevealPII((v) => !v)}
+                              count={comments.length}
+                            />
+                            {revealPII && <PIIRevealBanner />}
+                            <ul className="space-y-2">
+                              {comments.map((cm) => (
+                                <li
+                                  key={cm.comment_id}
+                                  className="rounded-lg border border-stone-200 bg-white p-3 text-sm shadow-sm"
+                                >
+                                  <div className="mb-1 flex items-center gap-2 text-xs text-stone-500">
+                                    <span className="font-medium text-stone-600">
+                                      {formatSubmitter(cm.submitter_name, cm.comment_id, revealPII)}
+                                    </span>
+                                    <span className="text-stone-400">·</span>
+                                    <span className="font-mono text-stone-400">
+                                      {cm.comment_id}
+                                    </span>
+                                  </div>
+                                  <p className="line-clamp-3 text-stone-700">
+                                    {cm.comment_text ?? "(no text)"}
+                                  </p>
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         </>

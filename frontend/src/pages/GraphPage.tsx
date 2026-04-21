@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ForceGraph2D } from "react-force-graph";
+// react-force-graph-2d is a 2D-only package — does not pull in three.js or A-Frame,
+// so it avoids the react-force-graph compatibility hacks (window.THREE shim, etc.).
+import ForceGraph2D from "react-force-graph-2d";
 import { getCitationGraph } from "../api/client";
 import { DocketSearch } from "../components/DocketSearch";
 import type { GraphResponse } from "../types/api";
@@ -20,7 +22,7 @@ interface FGLink {
 }
 
 const NODE_COLOR: Record<string, string> = {
-  docket: "#3b82f6",      // blue-500
+  docket: "#f59e0b",      // amber-500
   regulation: "#10b981",  // emerald-500
 };
 
@@ -50,13 +52,22 @@ export function GraphPage() {
   }, [docketId]);
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold">Citation Graph</h1>
-      <p className="text-slate-600 text-sm">
-        Visualizes which CFR and U.S.C. regulations a docket&apos;s comments
-        reference most. Node size reflects citation frequency.
-      </p>
+    <div className="space-y-8">
+      {/* header */}
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 ring-1 ring-emerald-200">
+            ⬡
+          </span>
+          <h1 className="text-2xl font-bold text-stone-800">Citation Graph</h1>
+        </div>
+        <p className="mt-1 max-w-2xl text-sm text-stone-500">
+          Which CFR and U.S.C. regulations does a docket&apos;s comments reference?
+          Node size reflects citation frequency.
+        </p>
+      </div>
 
+      {/* search */}
       <form
         className="flex gap-3"
         onSubmit={(e) => {
@@ -73,41 +84,50 @@ export function GraphPage() {
         <button
           type="submit"
           disabled={loading || !docketId.trim()}
-          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Loading..." : "Search"}
+          {loading ? "Loading…" : "Search"}
         </button>
       </form>
 
-      {error && <div className="text-red-700 text-sm">Error: {error}</div>}
+      {/* states */}
+      {error && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
 
       {searched && !loading && !error && graph?.nodes.length === 0 && (
-        <div className="text-slate-500 text-sm">
+        <div className="rounded-xl border border-stone-200 bg-white p-8 text-center text-sm text-stone-500 shadow-sm">
           No citations found for this docket. Run the pipeline to extract them.
         </div>
       )}
 
       {graph && graph.nodes.length > 0 && (
         <>
-          <div className="flex gap-4 text-sm text-slate-600">
-            <span>
+          {/* legend */}
+          <div className="flex flex-wrap gap-2 text-xs text-stone-600">
+            <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 shadow-sm">
               <span
-                className="inline-block w-3 h-3 rounded-full mr-1"
+                className="h-2 w-2 rounded-full"
                 style={{ background: NODE_COLOR.docket }}
               />
               Docket
             </span>
-            <span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 shadow-sm">
               <span
-                className="inline-block w-3 h-3 rounded-full mr-1"
+                className="h-2 w-2 rounded-full"
                 style={{ background: NODE_COLOR.regulation }}
               />
-              Regulation (
-              {graph.nodes.filter((n) => n.type === "regulation").length} unique)
+              Regulation
+              <span className="text-stone-400">
+                ({graph.nodes.filter((n) => n.type === "regulation").length} unique)
+              </span>
             </span>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
+          {/* graph canvas */}
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
             <ForceGraph2D
               graphData={{
                 nodes: graph.nodes as FGNode[],
@@ -115,35 +135,48 @@ export function GraphPage() {
               }}
               nodeId="id"
               nodeLabel={(n: FGNode) => `${n.label} (${n.count} comments)`}
-              nodeColor={(n: FGNode) => NODE_COLOR[n.type] ?? "#94a3b8"}
+              nodeColor={(n: FGNode) => NODE_COLOR[n.type] ?? "#a8a29e"}
               nodeVal={(n: FGNode) => Math.max(3, Math.sqrt(n.count + 1) * 4)}
               linkSource="source"
               linkTarget="target"
+              linkColor={() => "rgba(120,113,108,0.25)"}
               linkWidth={(l: FGLink) => Math.max(1, Math.log2((l.value ?? 1) + 1))}
               linkLabel={(l: FGLink) => `${l.value} comments`}
               width={900}
               height={500}
-              backgroundColor="#f8fafc"
+              backgroundColor="#fafaf9"
             />
           </div>
 
-          <section>
-            <h2 className="text-xl font-semibold mb-3">Top cited regulations</h2>
-            <ul className="space-y-2">
+          {/* top cited list */}
+          <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-600">
+              Top cited regulations
+            </h2>
+            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
               {graph.nodes
                 .filter((n) => n.type === "regulation")
                 .sort((a, b) => b.count - a.count)
                 .slice(0, 10)
-                .map((n) => (
-                  <li
+                .map((n, i, arr) => (
+                  <div
                     key={n.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm"
+                    className={`flex items-center justify-between px-5 py-3 text-sm transition hover:bg-stone-50 ${
+                      i !== arr.length - 1 ? "border-b border-stone-200/70" : ""
+                    }`}
                   >
-                    <span className="font-medium text-slate-800">{n.label}</span>
-                    <span className="text-slate-500">{n.count} comments</span>
-                  </li>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-xs text-stone-400 tabular-nums">
+                        {(i + 1).toString().padStart(2, "0")}
+                      </span>
+                      <span className="font-medium text-stone-800">{n.label}</span>
+                    </div>
+                    <span className="text-xs text-stone-500 tabular-nums">
+                      {n.count} comments
+                    </span>
+                  </div>
                 ))}
-            </ul>
+            </div>
           </section>
         </>
       )}

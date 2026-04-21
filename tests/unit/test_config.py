@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
 def test_settings_reads_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("REGULATIONS_GOV_API_KEY", "test-key")
-    monkeypatch.setenv("REGSCOPE_DATA_DIR", str(tmp_path))
-    monkeypatch.setenv("REGSCOPE_LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("FEDCOMMENT_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("FEDCOMMENT_LOG_LEVEL", "DEBUG")
 
     settings = Settings(_env_file=None)
 

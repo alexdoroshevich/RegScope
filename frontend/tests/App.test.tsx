@@ -24,7 +24,10 @@ describe("App", () => {
         <App />
       </MemoryRouter>,
     );
-    expect(screen.getByRole("heading", { name: "RegScope" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /Regulatory intelligence/i }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/FedComment/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Astroturf Detector/)).toBeInTheDocument();
     expect(screen.getByText(/Comment Clusters/)).toBeInTheDocument();
   });

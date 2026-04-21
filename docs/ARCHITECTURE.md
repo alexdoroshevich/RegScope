@@ -1,8 +1,8 @@
-# RegScope Architecture
+# FedComment Architecture
 
 ## Overview
 
-RegScope is a single-machine analytical platform that ingests US federal regulatory
+FedComment is a single-machine analytical platform that ingests US federal regulatory
 comments, detects coordinated astroturf campaigns, and clusters comments by topic.
 All processing fits comfortably on one machine (~30 GB dataset).
 
@@ -65,7 +65,7 @@ earlier than pandas.
 ## Directory Layout
 
 ```
-RegScope/
+FedComment/
 ├── api/                  FastAPI app
 │   ├── models/           Pydantic v2 schemas
 │   ├── routes/           one file per resource

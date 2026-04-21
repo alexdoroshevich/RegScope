@@ -1,9 +1,9 @@
 [project]
-name = "regscope"
+name = "fedcomment"
 version = "0.1.0"
-description = "AI-powered Federal Register regulatory intelligence platform"
+description = "AI-powered analysis of US federal regulatory public comments"
 requires-python = ">=3.13"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 readme = "README.md"
 
 dependencies = [
@@ -21,9 +21,23 @@ dependencies = [
     "pydantic>=2.9.0",
     "pydantic-settings>=2.5.0",
     "networkx>=3.3",
-    "python-dotenv>=1.0.0",
+    "python-dotenv>=1.2.2",
     "pytz>=2024.1",
     "tqdm>=4.66.0",
+]
+
+# Override-dependencies: force a package version regardless of what
+# transitive dependencies pin. litellm 1.83.x over-constrains several deps
+# to exact versions (e.g. "python-dotenv>=1.0.1, <1.0.1+"), which traps us
+# on vulnerable releases. The overrides below force the fixed versions.
+# All are backward-compatible with what litellm expects; revisit once
+# litellm relaxes its pins.
+#   python-dotenv 1.0.1 → 1.2.2   — CVE-2026-28684 (symlink-follow)
+#   aiohttp       3.13.3 → 3.13.4 — 10 CVEs (CVE-2026-22815 / 34513–34525)
+[tool.uv]
+override-dependencies = [
+    "python-dotenv>=1.2.2",
+    "aiohttp>=3.13.4",
 ]
 
 [dependency-groups]

@@ -250,7 +250,7 @@ def _load_db(data_dir: Path, docket_id: str, db_path: Path) -> None:
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
-        description="Run the full RegScope pipeline for a single docket.",
+        description="Run the full FedComment pipeline for a single docket.",
     )
     parser.add_argument("docket_id", help="Regulations.gov docket ID")
     parser.add_argument(

@@ -1,7 +1,7 @@
-# RegScope — Claude Code Project Instructions
+# FedComment — Claude Code Project Instructions
 
 ## Project Overview
-RegScope is an open-source AI-powered Federal Register regulatory intelligence platform.
+FedComment is an open-source AI-powered Federal Register regulatory intelligence platform.
 It analyzes public comments on federal regulations to detect astroturf campaigns,
 cluster comments by topic, and map cross-rule regulatory impact.
 
@@ -106,9 +106,9 @@ cluster comments by topic, and map cross-rule regulatory impact.
 ```
 REGULATIONS_GOV_API_KEY=xxx          # from api.data.gov
 OPENAI_API_KEY=xxx                    # for GPT-4o-mini via litellm
-REGSCOPE_DATA_DIR=./data/raw         # where Parquet files live
-REGSCOPE_DB_PATH=./data/regscope.db  # DuckDB file
-REGSCOPE_LOG_LEVEL=INFO
+FEDCOMMENT_DATA_DIR=./data/raw          # where Parquet files live
+FEDCOMMENT_DB_PATH=./data/fedcomment.db # DuckDB file
+FEDCOMMENT_LOG_LEVEL=INFO
 ```
 
 ## Common Commands
