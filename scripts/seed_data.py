@@ -31,10 +31,27 @@ _CLUSTER_TOPICS = [
     "Support for stricter enforcement",
     "Request for extended comment period",
 ]
-_TEMPLATE_TEXTS = [
-    "I strongly oppose this regulation because it will harm jobs in my community.",
-    "Please reconsider the proposed rule as it imposes undue burdens.",
-    "This rule is necessary to protect our environment for future generations.",
+# Each template pairs a duplicate-comment body with a (group_size,
+# unique_submitters) target so the demo always surfaces the full range
+# of astroturf likelihoods: two clear-cut campaigns and one benign
+# repeat. Likelihood = size / unique_submitters; >5.0 is flagged as
+# astroturf.
+_TEMPLATE_TEXTS: list[tuple[str, int, int]] = [
+    (
+        "I strongly oppose this regulation because it will harm jobs in my community.",
+        24,
+        3,  # likelihood 8.0 — clear astroturf
+    ),
+    (
+        "Please reconsider the proposed rule as it imposes undue burdens.",
+        17,
+        3,  # likelihood 5.67 — over the astroturf threshold
+    ),
+    (
+        "This rule is necessary to protect our environment for future generations.",
+        14,
+        12,  # likelihood 1.17 — benign dup cluster, not astroturf
+    ),
 ]
 _FIRST_NAMES = ["Alice", "Bob", "Carol", "David", "Eve", "Frank", "Grace", "Hank"]
 _LAST_NAMES = ["Smith", "Jones", "Williams", "Brown", "Taylor", "Davis", "Wilson"]
@@ -107,14 +124,12 @@ def _make_duplicate_groups(comments_df: pl.DataFrame, rng: random.Random) -> pl.
     used: set[str] = set()
     group_id = 1
 
-    for template in _TEMPLATE_TEXTS:
-        size = rng.randint(8, 20)
+    for template, size, unique_submitters in _TEMPLATE_TEXTS:
         available = [cid for cid in all_ids if cid not in used]
         if len(available) < size:
             break
         group_ids = rng.sample(available, size)
         used.update(group_ids)
-        unique_submitters = max(1, rng.randint(1, size - 1))
         likelihood = round(size / unique_submitters, 4)
         groups.append(
             {
@@ -209,6 +224,19 @@ def _make_citations(comments_df: pl.DataFrame, rng: random.Random) -> pl.DataFra
     )
 
 
+def _make_embeddings(comments_df: pl.DataFrame) -> pl.DataFrame:
+    """Compute real sentence-transformer embeddings for the seed comments.
+
+    Needed so the RAG ``/api/v1/query`` endpoint returns real results
+    against the seed docket instead of the "No embedded comments found"
+    fallback.  Takes a few seconds on CPU for the default 500 rows.
+    """
+    from nlp.embed import embed_comments
+
+    logger.info("computing embeddings for %d seed comments", comments_df.height)
+    return embed_comments(comments_df.select(["comment_id", "comment_text"]))
+
+
 def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
     """Generate synthetic data and load it into DuckDB."""
     rng = random.Random(42)
@@ -219,6 +247,7 @@ def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
     clusters_df = _make_clusters(comments_df, rng)
     labels_df = _make_cluster_labels()
     citations_df = _make_citations(comments_df, rng)
+    embeddings_df = _make_embeddings(comments_df)
 
     processed_dir = data_dir / "processed" / _DOCKET_ID
     processed_dir.mkdir(parents=True, exist_ok=True)
@@ -228,12 +257,14 @@ def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
     clusters_path = processed_dir / "clusters.parquet"
     labels_path = processed_dir / "cluster_labels.parquet"
     citations_path = processed_dir / "citations.parquet"
+    embeddings_path = processed_dir / "embeddings.parquet"
 
     comments_df.write_parquet(comments_path, compression="snappy")
     groups_df.write_parquet(groups_path, compression="snappy")
     clusters_df.write_parquet(clusters_path, compression="snappy")
     labels_df.write_parquet(labels_path, compression="snappy")
     citations_df.write_parquet(citations_path, compression="snappy")
+    embeddings_df.write_parquet(embeddings_path, compression="snappy")
     logger.info("wrote Parquet artefacts to %s", processed_dir)
 
     from db.init_db import (
@@ -242,6 +273,7 @@ def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
         load_cluster_assignments,
         load_comments_parquet,
         load_duplicate_groups,
+        load_embeddings,
     )
     from db.queries import upsert_cluster_label
 
@@ -249,6 +281,7 @@ def seed(sample_size: int, data_dir: Path, db_path: Path) -> None:
     conn = connect(db_path)
     try:
         load_comments_parquet(conn, str(comments_path))
+        load_embeddings(conn, str(embeddings_path))
         load_duplicate_groups(conn, str(groups_path))
         load_cluster_assignments(conn, str(clusters_path))
         load_citations(conn, str(citations_path))
