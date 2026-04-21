@@ -12,6 +12,12 @@ export default defineConfig({
       },
     },
   },
+  // three.js 0.175+ removed pre-built files from the npm package.
+  // Excluding these from esbuild pre-bundling lets Vite serve their
+  // source files directly at request time instead.
+  optimizeDeps: {
+    exclude: ["three", "react-force-graph"],
+  },
   test: {
     globals: true,
     environment: "jsdom",

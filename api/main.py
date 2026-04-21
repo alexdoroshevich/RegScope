@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from api.config import get_settings
 from api.logging_setup import configure_logging
-from api.routes import astroturf, clusters, comments, dockets, graph, health, query
+from api.routes import astroturf, clusters, comments, dockets, documents, graph, health, query
 
 _FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
     application.include_router(graph.router, prefix="/api/v1")
     application.include_router(query.router, prefix="/api/v1")
     application.include_router(dockets.router, prefix="/api/v1")
+    application.include_router(documents.router, prefix="/api/v1")
 
     if _FRONTEND_DIST.is_dir():
         # html=True enables SPA fallback: unknown paths → index.html.

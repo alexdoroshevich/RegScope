@@ -1,4 +1,4 @@
-"""Tests for API routes — comments, clusters, and astroturf endpoints."""
+"""Tests for API routes — comments, clusters, astroturf, and documents endpoints."""
 
 from __future__ import annotations
 
@@ -177,3 +177,162 @@ class TestAstroturfEndpoints:
         assert group["unique_submitters"] == 1
         assert group["template_text"] == "spam"
         assert len(group["comment_ids"]) == 6
+
+
+# ---------------------------------------------------------------------------
+# Documents fixture helper
+# ---------------------------------------------------------------------------
+
+
+def _insert_documents(db: duckdb.DuckDBPyConnection) -> None:
+    from datetime import UTC, datetime
+
+    stamp = datetime(2024, 6, 1, tzinfo=UTC)
+    db.executemany(
+        """
+        INSERT INTO documents (
+            document_number, docket_id, title, doc_type, abstract,
+            agency_names, publication_date, effective_on, comments_close_on,
+            html_url, citation, significant, fetched_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                "2024-00001",
+                "DOC-001",
+                "Rule A",
+                "RULE",
+                None,
+                '["EPA"]',
+                "2024-03-01",
+                None,
+                None,
+                None,
+                None,
+                False,
+                stamp,
+            ),
+            (
+                "2024-00002",
+                "DOC-001",
+                "Proposed Rule B",
+                "PRORULE",
+                None,
+                '["EPA"]',
+                "2024-02-01",
+                None,
+                None,
+                None,
+                None,
+                False,
+                stamp,
+            ),
+            (
+                "2024-00003",
+                "DOC-002",
+                "Notice C",
+                "NOTICE",
+                None,
+                '["FCC"]',
+                "2024-01-15",
+                None,
+                None,
+                None,
+                None,
+                None,
+                stamp,
+            ),
+        ],
+    )
+
+
+@pytest.fixture()
+def docs_client(db: duckdb.DuckDBPyConnection) -> Generator[TestClient]:
+    """TestClient with documents pre-loaded."""
+    _insert_documents(db)
+
+    def _override_db() -> Generator[duckdb.DuckDBPyConnection]:
+        yield db
+
+    app.dependency_overrides[get_db] = _override_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+class TestDocumentEndpoints:
+    def test_list_all(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total"] == 3
+        assert len(body["items"]) == 3
+        assert body["limit"] == 50
+        assert body["offset"] == 0
+
+    def test_filter_by_docket_id(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents?docket_id=DOC-001")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total"] == 2
+        assert all(d["docket_id"] == "DOC-001" for d in body["items"])
+
+    def test_filter_by_doc_type(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents?doc_type=NOTICE")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total"] == 1
+        assert body["items"][0]["doc_type"] == "NOTICE"
+
+    def test_filter_combined(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents?docket_id=DOC-001&doc_type=RULE")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total"] == 1
+        assert body["items"][0]["document_number"] == "2024-00001"
+
+    def test_empty_result(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents?docket_id=DOC-NONE")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["total"] == 0
+        assert body["items"] == []
+
+    def test_pagination(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents?limit=2&offset=0")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body["items"]) == 2
+        assert body["total"] == 3
+
+    def test_ordered_newest_first(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents")
+        items = resp.json()["items"]
+        dates = [i["publication_date"] for i in items if i["publication_date"]]
+        assert dates == sorted(dates, reverse=True)
+
+    def test_invalid_limit(self, docs_client: TestClient) -> None:
+        assert docs_client.get("/api/v1/documents?limit=0").status_code == 422
+        assert docs_client.get("/api/v1/documents?limit=101").status_code == 422
+
+    def test_invalid_offset(self, docs_client: TestClient) -> None:
+        assert docs_client.get("/api/v1/documents?offset=-1").status_code == 422
+
+    def test_response_fields(self, docs_client: TestClient) -> None:
+        resp = docs_client.get("/api/v1/documents?limit=1")
+        doc = resp.json()["items"][0]
+        for field in (
+            "document_number",
+            "docket_id",
+            "title",
+            "doc_type",
+            "abstract",
+            "agency_names",
+            "publication_date",
+            "effective_on",
+            "comments_close_on",
+            "html_url",
+            "citation",
+            "significant",
+            "fetched_at",
+        ):
+            assert field in doc
