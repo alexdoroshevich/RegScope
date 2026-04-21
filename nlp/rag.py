@@ -271,11 +271,38 @@ def answer_question(
             temperature=temperature,
             max_tokens=max_tokens,
         )
-    except Exception:
+    except Exception as err:
+        # Classify the most common surface errors so the UI can show an
+        # actionable message instead of a generic "try again".
+        from litellm.exceptions import (
+            APIConnectionError,
+            AuthenticationError,
+            RateLimitError,
+        )
+
+        if isinstance(err, RateLimitError):
+            msg = (
+                "The OpenAI account associated with OPENAI_API_KEY has exhausted its "
+                "quota. Top up billing at https://platform.openai.com/account/billing "
+                "and retry. Retrieval still worked — see the source comments below."
+            )
+        elif isinstance(err, AuthenticationError):
+            msg = (
+                "OPENAI_API_KEY is missing or invalid. Check your .env file. "
+                "Retrieval still worked — see the source comments below."
+            )
+        elif isinstance(err, APIConnectionError):
+            msg = (
+                "Could not reach the OpenAI API (network issue). Retrieval still "
+                "worked — see the source comments below."
+            )
+        else:
+            msg = f"LLM call failed: {type(err).__name__}. Retrieval still worked — see the source comments below."
+
         logger.exception("RAG LLM call failed for question %r", _sanitize_for_log(question))
         return RagAnswer(
             question=question,
-            answer="LLM call failed. Please try again.",
+            answer=msg,
             sources=sources,
             prompt_hash=prompt_hash,
             model=model,
