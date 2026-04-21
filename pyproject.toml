@@ -104,6 +104,7 @@ addopts = "--cov=data --cov=nlp --cov=api --cov=db --cov-report=term-missing --c
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks integration tests",
+    "smoke: live-server smoke tests; hit a running API + UI (deselect by default)",
 ]
 
 [tool.coverage.run]

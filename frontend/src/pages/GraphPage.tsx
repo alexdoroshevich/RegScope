@@ -8,11 +8,14 @@ import { DocketSearch } from "../components/DocketSearch";
 import type { GraphResponse } from "../types/api";
 
 // Node/link shapes expected by ForceGraph2D at runtime (id, source, target are required).
+// x/y are populated by the force-simulation and are undefined on the first render tick.
 interface FGNode {
   id: string;
   label: string;
   type: string;
   count: number;
+  x?: number;
+  y?: number;
 }
 
 interface FGLink {
@@ -136,12 +139,40 @@ export function GraphPage() {
               nodeId="id"
               nodeLabel={(n: FGNode) => `${n.label} (${n.count} comments)`}
               nodeColor={(n: FGNode) => NODE_COLOR[n.type] ?? "#a8a29e"}
-              nodeVal={(n: FGNode) => Math.max(3, Math.sqrt(n.count + 1) * 4)}
+              nodeVal={(n: FGNode) => Math.max(8, Math.sqrt(n.count + 1) * 6)}
+              // Draw the node's label under the default circle. Mode "after"
+              // runs our callback AFTER the default node is rendered, so we
+              // only add the text.
+              nodeCanvasObjectMode={() => "after"}
+              nodeCanvasObject={(node: FGNode, ctx, globalScale) => {
+                const label = node.label;
+                const fontSize = Math.max(10, 12 / globalScale);
+                ctx.font = `${fontSize}px ui-sans-serif, system-ui, sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "top";
+                const radius = Math.max(8, Math.sqrt(node.count + 1) * 6);
+                // Measure for a pill background so labels are legible over edges.
+                const padX = 4;
+                const padY = 2;
+                const textWidth = ctx.measureText(label).width;
+                const x = node.x ?? 0;
+                const y = (node.y ?? 0) + radius + 3;
+                ctx.fillStyle = "rgba(250, 250, 249, 0.92)";
+                ctx.fillRect(
+                  x - textWidth / 2 - padX,
+                  y - padY,
+                  textWidth + padX * 2,
+                  fontSize + padY * 2,
+                );
+                ctx.fillStyle = "#44403c";
+                ctx.fillText(label, x, y);
+              }}
               linkSource="source"
               linkTarget="target"
-              linkColor={() => "rgba(120,113,108,0.25)"}
-              linkWidth={(l: FGLink) => Math.max(1, Math.log2((l.value ?? 1) + 1))}
+              linkColor={() => "rgba(120,113,108,0.35)"}
+              linkWidth={(l: FGLink) => Math.max(1.5, Math.log2((l.value ?? 1) + 1) * 1.2)}
               linkLabel={(l: FGLink) => `${l.value} comments`}
+              cooldownTicks={60}
               width={900}
               height={500}
               backgroundColor="#fafaf9"

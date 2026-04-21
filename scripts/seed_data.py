@@ -38,6 +38,26 @@ _TEMPLATE_TEXTS = [
 ]
 _FIRST_NAMES = ["Alice", "Bob", "Carol", "David", "Eve", "Frank", "Grace", "Hank"]
 _LAST_NAMES = ["Smith", "Jones", "Williams", "Brown", "Taylor", "Davis", "Wilson"]
+
+# Plausible supporting clauses that make seed comments readable while still
+# giving each comment enough unique text to survive MinHash deduplication.
+_SUPPORTING_CLAUSES = [
+    "This will disproportionately affect rural and low-income communities.",
+    "The proposed timeline is not realistic for small businesses.",
+    "We urge the agency to extend the public comment period.",
+    "The evidence in the draft assessment does not justify this action.",
+    "Similar rules in other states have produced measurable benefits.",
+    "I respectfully request additional economic impact analysis.",
+    "Enforcement mechanisms remain unclear in the current proposal.",
+    "The cost-benefit ratio appears favourable when externalities are priced in.",
+    "There are significant compliance gaps for mid-sized operators.",
+    "Stakeholders need more guidance on the transition provisions.",
+    "Public health data published since 2018 supports a stronger rule.",
+    "We support the intent but question the selected metrics.",
+    "The rule should include a phase-in for existing facilities.",
+    "Without exemptions for legacy equipment the rule is unworkable.",
+    "An independent review of the modelling assumptions is warranted.",
+]
 _CFR_CITATIONS = [
     ("40 CFR Part 60", "CFR", 40, 60),
     ("40 CFR Part 63", "CFR", 40, 63),
@@ -63,14 +83,17 @@ def _make_comments(n: int, rng: random.Random) -> pl.DataFrame:
         first = rng.choice(_FIRST_NAMES)
         last = rng.choice(_LAST_NAMES)
         topic = rng.choice(_CLUSTER_TOPICS)
-        extra = " ".join(rng.choice(string.ascii_lowercase) for _ in range(rng.randint(5, 20)))
+        # 1-3 plausible supporting sentences; enough variety for MinHash to
+        # still see each comment as distinct.
+        clauses = rng.sample(_SUPPORTING_CLAUSES, k=rng.randint(1, 3))
+        body = f"{topic}. {' '.join(clauses)}"
         rows.append(
             {
                 "comment_id": _random_id("CMT"),
                 "docket_id": _DOCKET_ID,
                 "posted_date": posted.strftime("%Y-%m-%d"),
                 "submitter_name": f"{first} {last}",
-                "comment_text": f"{topic}. {extra}",
+                "comment_text": body,
                 "fetched_at": datetime.now(UTC),
             }
         )
