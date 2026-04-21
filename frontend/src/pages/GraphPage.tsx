@@ -1,33 +1,99 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-// react-force-graph-2d is a 2D-only package — does not pull in three.js or A-Frame,
-// so it avoids the react-force-graph compatibility hacks (window.THREE shim, etc.).
-import ForceGraph2D from "react-force-graph-2d";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Layer,
+  Rectangle,
+  ResponsiveContainer,
+  Sankey,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { getCitationGraph } from "../api/client";
 import { DocketSearch } from "../components/DocketSearch";
 import type { GraphResponse } from "../types/api";
 
-// Node/link shapes expected by ForceGraph2D at runtime (id, source, target are required).
-// x/y are populated by the force-simulation and are undefined on the first render tick.
-interface FGNode {
-  id: string;
-  label: string;
-  type: string;
-  count: number;
-  x?: number;
-  y?: number;
+// Colours match the per-feature accents elsewhere in the app.
+const DOCKET_COLOR = "#f59e0b"; // amber-500
+const REG_COLOR = "#10b981";    // emerald-500
+
+// Two ways to read the same data. Sankey is the default — it spatially
+// encodes citation flow in a way that's readable for any number of
+// regulations. The bar view is strictly sorted by count.
+type View = "sankey" | "bars";
+
+interface SankeyDatum {
+  nodes: { name: string; type: "docket" | "regulation" }[];
+  links: { source: number; target: number; value: number }[];
 }
 
-interface FGLink {
-  source: string;
-  target: string;
+interface NodePayload {
+  name: string;
+  type?: "docket" | "regulation";
+  value?: number;
+}
+
+interface LinkPayload {
+  source: { name: string };
+  target: { name: string };
   value: number;
 }
 
-const NODE_COLOR: Record<string, string> = {
-  docket: "#f59e0b",      // amber-500
-  regulation: "#10b981",  // emerald-500
-};
+/** Draw a Sankey node as a coloured rectangle with an external label. */
+function SankeyNode({
+  x,
+  y,
+  width,
+  height,
+  payload,
+  containerWidth,
+}: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  payload: NodePayload;
+  containerWidth: number;
+}) {
+  const isOut = x + width + 6 > containerWidth;
+  const fill = payload.type === "docket" ? DOCKET_COLOR : REG_COLOR;
+  return (
+    <Layer key={`node-${payload.name}`}>
+      <Rectangle
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={fill}
+        fillOpacity={0.9}
+      />
+      <text
+        textAnchor={isOut ? "end" : "start"}
+        x={isOut ? x - 6 : x + width + 6}
+        y={y + height / 2}
+        fontSize={12}
+        fill="#44403c"
+        alignmentBaseline="middle"
+      >
+        {payload.name}
+      </text>
+      <text
+        textAnchor={isOut ? "end" : "start"}
+        x={isOut ? x - 6 : x + width + 6}
+        y={y + height / 2 + 14}
+        fontSize={10}
+        fill="#a8a29e"
+        alignmentBaseline="middle"
+      >
+        {payload.value} {payload.value === 1 ? "comment" : "comments"}
+      </text>
+    </Layer>
+  );
+}
 
 export function GraphPage() {
   const [searchParams] = useSearchParams();
@@ -36,6 +102,7 @@ export function GraphPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  const [view, setView] = useState<View>("sankey");
 
   const search = useCallback(async () => {
     const trimmed = docketId.trim();
@@ -54,6 +121,40 @@ export function GraphPage() {
     }
   }, [docketId]);
 
+  /** Convert the API's id-based graph into index-based Sankey data. */
+  const sankeyData: SankeyDatum | null = useMemo(() => {
+    if (!graph || graph.nodes.length === 0) return null;
+    // Order: docket(s) first, then regulations sorted by count desc — gives a
+    // tidy vertical stack on the right side of the diagram.
+    const dockets = graph.nodes.filter((n) => n.type === "docket");
+    const regulations = [...graph.nodes.filter((n) => n.type === "regulation")].sort(
+      (a, b) => b.count - a.count,
+    );
+    const ordered = [...dockets, ...regulations];
+    const indexById = new Map(ordered.map((n, i) => [n.id, i]));
+    return {
+      nodes: ordered.map((n) => ({
+        name: n.label,
+        type: n.type as "docket" | "regulation",
+      })),
+      links: graph.links
+        .map((l) => ({
+          source: indexById.get(l.source) ?? -1,
+          target: indexById.get(l.target) ?? -1,
+          value: l.value,
+        }))
+        .filter((l) => l.source >= 0 && l.target >= 0),
+    };
+  }, [graph]);
+
+  const regulations = useMemo(
+    () =>
+      [...(graph?.nodes ?? [])]
+        .filter((n) => n.type === "regulation")
+        .sort((a, b) => b.count - a.count),
+    [graph],
+  );
+
   return (
     <div className="space-y-8">
       {/* header */}
@@ -66,7 +167,7 @@ export function GraphPage() {
         </div>
         <p className="mt-1 max-w-2xl text-sm text-stone-500">
           Which CFR and U.S.C. regulations does a docket&apos;s comments reference?
-          Node size reflects citation frequency.
+          Wider flows = more comments cite that regulation.
         </p>
       </div>
 
@@ -93,7 +194,6 @@ export function GraphPage() {
         </button>
       </form>
 
-      {/* states */}
       {error && (
         <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
@@ -106,107 +206,143 @@ export function GraphPage() {
         </div>
       )}
 
-      {graph && graph.nodes.length > 0 && (
+      {sankeyData && (
         <>
-          {/* legend */}
-          <div className="flex flex-wrap gap-2 text-xs text-stone-600">
-            <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 shadow-sm">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: NODE_COLOR.docket }}
-              />
-              Docket
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 shadow-sm">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: NODE_COLOR.regulation }}
-              />
-              Regulation
-              <span className="text-stone-400">
-                ({graph.nodes.filter((n) => n.type === "regulation").length} unique)
+          {/* legend + view switcher */}
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-stone-600">
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 shadow-sm">
+                <span className="h-2 w-2 rounded-full" style={{ background: DOCKET_COLOR }} />
+                Docket
               </span>
-            </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-1 shadow-sm">
+                <span className="h-2 w-2 rounded-full" style={{ background: REG_COLOR }} />
+                Regulation
+                <span className="text-stone-400">({regulations.length} unique)</span>
+              </span>
+            </div>
+            <div className="inline-flex rounded-full border border-stone-200 bg-white p-0.5 shadow-sm">
+              {(["sankey", "bars"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                    view === v
+                      ? "bg-stone-900 text-stone-50"
+                      : "text-stone-500 hover:text-stone-800"
+                  }`}
+                >
+                  {v === "sankey" ? "Sankey" : "Bars"}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* graph canvas */}
-          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-            <ForceGraph2D
-              graphData={{
-                nodes: graph.nodes as FGNode[],
-                links: graph.links as FGLink[],
-              }}
-              nodeId="id"
-              nodeLabel={(n: FGNode) => `${n.label} (${n.count} comments)`}
-              nodeColor={(n: FGNode) => NODE_COLOR[n.type] ?? "#a8a29e"}
-              nodeVal={(n: FGNode) => Math.max(8, Math.sqrt(n.count + 1) * 6)}
-              // Draw the node's label under the default circle. Mode "after"
-              // runs our callback AFTER the default node is rendered, so we
-              // only add the text.
-              nodeCanvasObjectMode={() => "after"}
-              nodeCanvasObject={(node: FGNode, ctx, globalScale) => {
-                const label = node.label;
-                const fontSize = Math.max(10, 12 / globalScale);
-                ctx.font = `${fontSize}px ui-sans-serif, system-ui, sans-serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "top";
-                const radius = Math.max(8, Math.sqrt(node.count + 1) * 6);
-                // Measure for a pill background so labels are legible over edges.
-                const padX = 4;
-                const padY = 2;
-                const textWidth = ctx.measureText(label).width;
-                const x = node.x ?? 0;
-                const y = (node.y ?? 0) + radius + 3;
-                ctx.fillStyle = "rgba(250, 250, 249, 0.92)";
-                ctx.fillRect(
-                  x - textWidth / 2 - padX,
-                  y - padY,
-                  textWidth + padX * 2,
-                  fontSize + padY * 2,
-                );
-                ctx.fillStyle = "#44403c";
-                ctx.fillText(label, x, y);
-              }}
-              linkSource="source"
-              linkTarget="target"
-              linkColor={() => "rgba(120,113,108,0.35)"}
-              linkWidth={(l: FGLink) => Math.max(1.5, Math.log2((l.value ?? 1) + 1) * 1.2)}
-              linkLabel={(l: FGLink) => `${l.value} comments`}
-              cooldownTicks={60}
-              width={900}
-              height={500}
-              backgroundColor="#fafaf9"
-            />
-          </div>
+          {/* Sankey view */}
+          {view === "sankey" && (
+            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-sm">
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(360, sankeyData.nodes.length * 36)}
+              >
+                <Sankey
+                  data={sankeyData}
+                  node={
+                    (<SankeyNode x={0} y={0} width={0} height={0} payload={{ name: "" }} containerWidth={0} />) as unknown as React.ReactElement
+                  }
+                  nodePadding={22}
+                  nodeWidth={14}
+                  linkCurvature={0.5}
+                  iterations={64}
+                  link={{ stroke: "#d6d3d1", strokeOpacity: 0.4 }}
+                >
+                  <Tooltip
+                    formatter={(value, _name, item) => {
+                      const payload = (item as { payload?: LinkPayload | NodePayload } | undefined)?.payload;
+                      if (payload && "source" in payload && typeof payload.source === "object") {
+                        const link = payload as LinkPayload;
+                        return [`${value} comments`, `${link.source.name} → ${link.target.name}`];
+                      }
+                      return [`${value} comments`, "total"];
+                    }}
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e7e5e4",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: "#1c1917",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    }}
+                  />
+                </Sankey>
+              </ResponsiveContainer>
+            </div>
+          )}
 
-          {/* top cited list */}
+          {/* Bar-chart view */}
+          {view === "bars" && (
+            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+              <ResponsiveContainer width="100%" height={Math.max(280, regulations.length * 32 + 40)}>
+                <BarChart
+                  data={regulations.map((r) => ({ name: r.label, count: r.count }))}
+                  layout="vertical"
+                  margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: "#78716c" }} stroke="#d6d3d1" />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={180}
+                    tick={{ fontSize: 11, fill: "#44403c" }}
+                    stroke="#d6d3d1"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #e7e5e4",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      color: "#1c1917",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                    }}
+                    cursor={{ fill: "rgba(16,185,129,0.08)" }}
+                  />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {regulations.map((r) => (
+                      <Cell key={r.id} fill={REG_COLOR} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Top cited list (kept below either view for at-a-glance totals) */}
           <section className="space-y-3">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-600">
               Top cited regulations
             </h2>
             <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-              {graph.nodes
-                .filter((n) => n.type === "regulation")
-                .sort((a, b) => b.count - a.count)
-                .slice(0, 10)
-                .map((n, i, arr) => (
-                  <div
-                    key={n.id}
-                    className={`flex items-center justify-between px-5 py-3 text-sm transition hover:bg-stone-50 ${
-                      i !== arr.length - 1 ? "border-b border-stone-200/70" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-stone-400 tabular-nums">
-                        {(i + 1).toString().padStart(2, "0")}
-                      </span>
-                      <span className="font-medium text-stone-800">{n.label}</span>
-                    </div>
-                    <span className="text-xs text-stone-500 tabular-nums">
-                      {n.count} comments
+              {regulations.slice(0, 10).map((n, i, arr) => (
+                <div
+                  key={n.id}
+                  className={`flex items-center justify-between px-5 py-3 text-sm transition hover:bg-stone-50 ${
+                    i !== arr.length - 1 ? "border-b border-stone-200/70" : ""
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-stone-400 tabular-nums">
+                      {(i + 1).toString().padStart(2, "0")}
                     </span>
+                    <span className="font-medium text-stone-800">{n.label}</span>
                   </div>
-                ))}
+                  <span className="text-xs text-stone-500 tabular-nums">
+                    {n.count} comments
+                  </span>
+                </div>
+              ))}
             </div>
           </section>
         </>

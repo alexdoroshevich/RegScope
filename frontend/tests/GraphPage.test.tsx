@@ -46,14 +46,19 @@ describe("GraphPage", () => {
     expect(screen.getByRole("button", { name: "Search" })).toBeDisabled();
   });
 
-  it("renders ForceGraph2D after a successful search", async () => {
+  it("shows the view-switcher after a successful search", async () => {
+    // The page now renders a Sankey diagram by default with a Sankey/Bars
+    // view switcher. jsdom can't meaningfully render the SVG Sankey, but
+    // the switcher buttons are a stable signal that the graph section is
+    // live.
     const user = userEvent.setup();
     render(<MemoryRouter><GraphPage /></MemoryRouter>);
     await user.type(screen.getByPlaceholderText(/Enter docket ID/), "EPA-HQ-OAR-2021-0317");
     await user.click(screen.getByRole("button", { name: "Search" }));
     await waitFor(() => {
-      expect(screen.getByTestId("force-graph-2d")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Sankey" })).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: "Bars" })).toBeInTheDocument();
   });
 
   it("shows the top cited regulations list", async () => {
