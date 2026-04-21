@@ -21,9 +21,19 @@ dependencies = [
     "pydantic>=2.9.0",
     "pydantic-settings>=2.5.0",
     "networkx>=3.3",
-    "python-dotenv>=1.0.0",
+    "python-dotenv>=1.2.2",
     "pytz>=2024.1",
     "tqdm>=4.66.0",
+]
+
+# Override-dependencies: force a package version regardless of what
+# transitive dependencies pin. litellm 1.83.x pins python-dotenv to exactly
+# 1.0.1, which has CVE-2026-28684 (symlink-follow, fixed in 1.2.2).
+# Override is safe: python-dotenv 1.2.x is backward-compatible with 1.0.1.
+# Revisit once litellm relaxes the pin.
+[tool.uv]
+override-dependencies = [
+    "python-dotenv>=1.2.2",
 ]
 
 [dependency-groups]
