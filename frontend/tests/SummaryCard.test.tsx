@@ -13,11 +13,11 @@ describe("SummaryCard", () => {
     const { container } = render(
       <SummaryCard label="Alerts" value={5} tone="warning" />,
     );
-    expect(container.firstChild).toHaveClass("bg-red-50");
+    expect(container.firstChild).toHaveClass("border-rose-200");
   });
 
   it("defaults to neutral tone", () => {
     const { container } = render(<SummaryCard label="Items" value="3" />);
-    expect(container.firstChild).toHaveClass("bg-slate-50");
+    expect(container.firstChild).toHaveClass("bg-white");
   });
 });

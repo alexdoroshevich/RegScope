@@ -78,7 +78,7 @@ describe("QueryPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/Commenters raised concerns/)).toBeInTheDocument();
     });
-    expect(screen.getByText(/Source comments/)).toBeInTheDocument();
+    expect(screen.getByText(/source comments/i)).toBeInTheDocument();
   });
 
   it("shows source comment IDs and similarity percentages", async () => {
@@ -183,7 +183,7 @@ describe("QueryPage", () => {
     await user.type(screen.getByPlaceholderText(/What concerns/), "air quality");
     await user.click(screen.getByRole("button", { name: "Ask" }));
     await waitFor(() => {
-      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText(/API error 500/)).toBeInTheDocument();
     });
   });
 

@@ -210,8 +210,8 @@ def get_astroturf_summary(
         """
         SELECT
             COUNT(*) as total_groups,
-            SUM(CASE WHEN is_astroturf THEN 1 ELSE 0 END) as astroturf_groups,
-            SUM(group_size) as total_flagged_comments,
+            COALESCE(SUM(CASE WHEN is_astroturf THEN 1 ELSE 0 END), 0) as astroturf_groups,
+            COALESCE(SUM(group_size), 0) as total_flagged_comments,
             MAX(campaign_likelihood) as max_campaign_likelihood
         FROM duplicate_groups
         """

@@ -66,9 +66,9 @@ describe("ClustersPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Air Quality")).toBeInTheDocument();
     });
-    expect(screen.getByText("(15 comments)")).toBeInTheDocument();
+    expect(screen.getAllByText(/15 comments/).length).toBeGreaterThan(0);
     expect(screen.getByText("Cluster #1")).toBeInTheDocument();
-    expect(screen.getByText("(8 comments)")).toBeInTheDocument();
+    expect(screen.getAllByText(/8 comments/).length).toBeGreaterThan(0);
   });
 
   it("shows summary cards with cluster stats", async () => {
@@ -101,8 +101,10 @@ describe("ClustersPage", () => {
       expect(screen.getByText("We need cleaner air.")).toBeInTheDocument();
     });
     expect(screen.getByText("Pollution is bad.")).toBeInTheDocument();
-    expect(screen.getByText(/Alice/)).toBeInTheDocument();
-    expect(screen.getByText(/Anonymous/)).toBeInTheDocument();
+    // PII is anonymised by default — real names (Alice) are hidden, the
+    // anonymous handle "Submitter #xxxx" appears instead.
+    expect(screen.getAllByText(/Submitter #/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Alice/)).not.toBeInTheDocument();
   });
 
   it("shows empty state when no clusters found", async () => {
@@ -139,7 +141,7 @@ describe("ClustersPage", () => {
     await user.click(screen.getByRole("button", { name: "Search" }));
 
     await waitFor(() => {
-      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText(/API error 500/)).toBeInTheDocument();
     });
   });
 

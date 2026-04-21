@@ -70,7 +70,7 @@ describe("DocketsPage", () => {
   it("shows total docket count", async () => {
     render(<MemoryRouter><DocketsPage /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText("2 dockets")).toBeInTheDocument();
+      expect(screen.getByText("2 total")).toBeInTheDocument();
     });
   });
 
@@ -141,7 +141,7 @@ describe("DocketsPage", () => {
     );
     render(<MemoryRouter><DocketsPage /></MemoryRouter>);
     await waitFor(() => {
-      expect(screen.getByText(/Error:/)).toBeInTheDocument();
+      expect(screen.getByText(/API error 500/)).toBeInTheDocument();
     });
   });
 });

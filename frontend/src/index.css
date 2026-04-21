@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  * {
+    border-color: theme("colors.stone.200");
+  }
+
+  body {
+    @apply bg-stone-50 text-stone-900 antialiased;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-stone-100;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-stone-300;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-stone-400;
+  }
+}
+
+@layer utilities {
+  /* Warm sunset gradient — used on hero headings. */
+  .text-gradient {
+    @apply bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 bg-clip-text text-transparent;
+  }
+}

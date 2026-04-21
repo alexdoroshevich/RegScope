@@ -45,100 +45,119 @@ export function DocketsPage() {
   const pageCount = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
+      {/* header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Dockets</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-stone-800">Dockets</h1>
+          <p className="mt-0.5 text-sm text-stone-500">
+            Federal Register regulatory dockets
+          </p>
+        </div>
         {!loading && total > 0 && (
-          <span className="text-sm text-slate-500">
-            {total.toLocaleString()} dockets
+          <span className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-medium text-stone-600 shadow-sm">
+            {total.toLocaleString()} total
           </span>
         )}
       </div>
 
+      {/* search */}
       <form className="flex gap-3" onSubmit={submit}>
         <input
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search by docket ID…"
-          className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 placeholder-stone-400 shadow-sm transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
         />
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:shadow-md"
         >
           Search
         </button>
       </form>
 
-      {error && <div className="text-red-700 text-sm">Error: {error}</div>}
-
-      {loading && <div className="text-slate-500 text-sm">Loading…</div>}
+      {/* states */}
+      {error && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
+      {loading && <div className="text-sm text-stone-500">Loading…</div>}
 
       {!loading && !error && dockets.length === 0 && (
-        <div className="text-slate-500 text-sm">
-          {submittedQ
-            ? `No dockets matching "${submittedQ}".`
-            : "No dockets found. Run the pipeline to ingest data."}
+        <div className="rounded-xl border border-stone-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-sm text-stone-600">
+            {submittedQ
+              ? `No dockets matching "${submittedQ}".`
+              : "No dockets found. Run the pipeline to ingest data."}
+          </p>
         </div>
       )}
 
+      {/* list */}
       {dockets.length > 0 && (
         <>
-          <ul className="space-y-2">
-            {dockets.map((d) => (
-              <li
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+            {dockets.map((d, i) => (
+              <div
                 key={d.docket_id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 gap-2"
+                className={`flex flex-col gap-3 px-5 py-4 transition hover:bg-stone-50 sm:flex-row sm:items-center sm:justify-between ${
+                  i !== dockets.length - 1 ? "border-b border-stone-200/70" : ""
+                }`}
               >
                 <div>
-                  <span className="font-medium text-slate-800">{d.docket_id}</span>
-                  <span className="ml-3 text-sm text-slate-500">
+                  <span className="font-mono text-sm font-medium text-stone-800">
+                    {d.docket_id}
+                  </span>
+                  <span className="ml-3 text-xs text-stone-500">
                     {d.comment_count.toLocaleString()} comments
                   </span>
                 </div>
                 <div className="flex gap-2 text-xs">
                   <Link
                     to={`/clusters?docket=${encodeURIComponent(d.docket_id)}`}
-                    className="rounded bg-slate-100 px-2 py-1 hover:bg-slate-200 text-slate-700"
+                    className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-stone-700 transition hover:border-stone-300 hover:bg-stone-100"
                   >
                     Clusters
                   </Link>
                   <Link
                     to={`/graph?docket=${encodeURIComponent(d.docket_id)}`}
-                    className="rounded bg-slate-100 px-2 py-1 hover:bg-slate-200 text-slate-700"
+                    className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-stone-700 transition hover:border-stone-300 hover:bg-stone-100"
                   >
                     Graph
                   </Link>
                   <Link
                     to={`/query?docket=${encodeURIComponent(d.docket_id)}`}
-                    className="rounded bg-slate-100 px-2 py-1 hover:bg-slate-200 text-slate-700"
+                    className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-stone-700 transition hover:border-stone-300 hover:bg-stone-100"
                   >
                     Ask
                   </Link>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
 
+          {/* pagination */}
           {pageCount > 1 && (
             <div className="flex items-center justify-between pt-2">
               <button
                 type="button"
                 disabled={page === 0}
                 onClick={() => setPage((p) => p - 1)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-40"
+                className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 shadow-sm transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 ← Previous
               </button>
-              <span className="text-sm text-slate-500">
+              <span className="text-xs text-stone-500">
                 Page {page + 1} of {pageCount}
               </span>
               <button
                 type="button"
                 disabled={page >= pageCount - 1}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50 disabled:opacity-40"
+                className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 shadow-sm transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next →
               </button>

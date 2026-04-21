@@ -97,24 +97,24 @@ export function DocketSearch({ value, onChange, placeholder, className }: Props)
         aria-autocomplete="list"
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 placeholder-stone-400 shadow-sm transition focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
       />
       {fetching && (
-        <span className="absolute right-3 top-2.5 text-xs text-slate-400" aria-hidden="true">
+        <span className="absolute right-3 top-2.5 text-xs text-stone-400" aria-hidden="true">
           …
         </span>
       )}
       {open && (
         <ul
           role="listbox"
-          className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-stone-200 bg-white shadow-lg"
         >
           {suggestions.map((d) => (
             <li
               key={d.docket_id}
               role="option"
               aria-selected={value === d.docket_id}
-              className="flex items-center justify-between px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer"
+              className="flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm transition hover:bg-stone-100"
               // onMouseDown+preventDefault keeps focus on the input so
               // the blur event does not close the dropdown before onClick fires.
               onMouseDown={(e) => {
@@ -122,8 +122,8 @@ export function DocketSearch({ value, onChange, placeholder, className }: Props)
                 select(d.docket_id);
               }}
             >
-              <span className="font-medium text-slate-800">{d.docket_id}</span>
-              <span className="text-xs text-slate-400">
+              <span className="font-mono font-medium text-stone-800">{d.docket_id}</span>
+              <span className="text-xs text-stone-500">
                 {d.comment_count.toLocaleString()} comments
               </span>
             </li>
