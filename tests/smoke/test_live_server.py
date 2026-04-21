@@ -152,7 +152,7 @@ def test_ui_serves_index_html() -> None:
     except httpx.ConnectError as err:
         pytest.skip(f"UI unreachable at {UI_URL}: {err}")
     assert r.status_code == 200
-    assert "<div id=\"root\">" in r.text
+    assert '<div id="root">' in r.text
     assert "FedComment" in r.text
 
 
